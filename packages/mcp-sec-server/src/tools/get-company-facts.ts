@@ -361,10 +361,15 @@ function extractPeriods(
 
   for (const unit of unitKeys) {
     const baseUnit = unit.split('/')[0]!;
-    const isCurrency = /^[A-Z]{3}$/.test(baseUnit) && !NON_MONETARY_UNITS.has(baseUnit);
+    const normalizedBaseUnit = baseUnit.toUpperCase();
+    const isUSD = normalizedBaseUnit === 'USD';
+    const isCurrency = /^[A-Z]{3}$/.test(normalizedBaseUnit) && !NON_MONETARY_UNITS.has(normalizedBaseUnit);
     const entryCount = (fact.units[unit] || []).length;
-    // Score: currency gets 10000 bonus + entry count for tiebreaking
-    const score = (isCurrency ? 10000 : 0) + entryCount;
+    // Deterministic unit preference:
+    // 1) USD (avoid avoidable FX dependency)
+    // 2) Other currencies
+    // 3) Non-monetary units
+    const score = (isUSD ? 20000 : (isCurrency ? 10000 : 0)) + entryCount;
 
     if (score > bestScore) {
       bestScore = score;

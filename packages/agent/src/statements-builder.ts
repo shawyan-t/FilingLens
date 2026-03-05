@@ -13,6 +13,7 @@ import {
   formatCompactCurrency,
   formatCompactShares,
 } from '@dolph/shared';
+import { buildCanonicalAnnualPeriodMap, normalizeMetricValue } from './report-facts.js';
 
 /**
  * Build the Financial Statements section deterministically from pipeline data.
@@ -25,6 +26,7 @@ export function buildFinancialStatementsSection(context: AnalysisContext): Repor
   for (const ticker of context.tickers) {
     const statements = context.statements[ticker] || [];
     const facts = context.facts[ticker];
+    const canonicalPeriodMap = buildCanonicalAnnualPeriodMap(context, ticker);
     const appendixLetter = String.fromCharCode(65 + Math.min(25, context.tickers.indexOf(ticker)));
 
     if (context.tickers.length > 1) {
@@ -44,7 +46,7 @@ export function buildFinancialStatementsSection(context: AnalysisContext): Repor
     if (incomeStmt && incomeStmt.periods.length > 0) {
       parts.push('#### Income Statement');
       parts.push('');
-      parts.push(buildStatementTable(incomeStmt));
+      parts.push(buildStatementTable(incomeStmt, canonicalPeriodMap));
       parts.push('');
       hasData = true;
     }
@@ -52,7 +54,7 @@ export function buildFinancialStatementsSection(context: AnalysisContext): Repor
     if (balanceStmt && balanceStmt.periods.length > 0) {
       parts.push('#### Balance Sheet');
       parts.push('');
-      parts.push(buildStatementTable(balanceStmt));
+      parts.push(buildStatementTable(balanceStmt, canonicalPeriodMap));
       parts.push('');
       hasData = true;
     }
@@ -60,7 +62,7 @@ export function buildFinancialStatementsSection(context: AnalysisContext): Repor
     if (cashFlowStmt && cashFlowStmt.periods.length > 0) {
       parts.push('#### Cash Flow Statement');
       parts.push('');
-      parts.push(buildStatementTable(cashFlowStmt));
+      parts.push(buildStatementTable(cashFlowStmt, canonicalPeriodMap));
       parts.push('');
       hasData = true;
     }
@@ -74,6 +76,9 @@ export function buildFinancialStatementsSection(context: AnalysisContext): Repor
 
     if (!hasData) {
       parts.push(`*Financial statement data not available for ${ticker}.*`);
+      parts.push('');
+    } else {
+      parts.push('*Per-share basis: EPS uses diluted weighted-average shares; BVPS uses period-end shares outstanding.*');
       parts.push('');
     }
 
@@ -104,16 +109,37 @@ export function buildFinancialStatementsSection(context: AnalysisContext): Repor
  * Build a Markdown table from a FinancialStatement.
  * Takes the most recent 3 periods and formats values as $X.XB / $X.XM.
  */
-function buildStatementTable(statement: FinancialStatement): string {
+function buildStatementTable(
+  statement: FinancialStatement,
+  canonicalPeriodMap?: Map<string, Record<string, number>>,
+): string {
   // Take the most recent 3 periods
   const periods = statement.periods.slice(0, 3);
   if (periods.length === 0) return '*No data available.*';
 
-  // Collect all metrics that appear across these periods
+  const periodDataMap = new Map(periods.map(p => [p.period, p.data]));
+  const getValue = (period: string, metric: string): number | null => {
+    const canonical = canonicalPeriodMap?.get(period)?.[metric];
+    if (canonical !== undefined && isFinite(canonical)) return canonical;
+    const raw = periodDataMap.get(period)?.[metric];
+    if (raw === undefined || raw === null || !isFinite(raw)) return null;
+    return normalizeMetricValue(metric, raw);
+  };
+
+  // Collect metrics in deterministic statement order first.
   const allMetrics = new Set<string>();
+  const statementMappings = getMappingsForStatement(statement.statement_type);
+  for (const mapping of statementMappings) {
+    if (periods.some(p => getValue(p.period, mapping.standardName) !== null)) {
+      allMetrics.add(mapping.standardName);
+    }
+  }
+  // Include any extra non-standard keys present in selected periods.
   for (const p of periods) {
     for (const key of Object.keys(p.data)) {
-      allMetrics.add(key);
+      if (periods.some(period => getValue(period.period, key) !== null)) {
+        allMetrics.add(key);
+      }
     }
   }
 
@@ -125,7 +151,7 @@ function buildStatementTable(statement: FinancialStatement): string {
   const separator = `|:---|${periodLabels.map(() => '---:').join('|')}|`;
 
   const mappingOrder = new Map(
-    getMappingsForStatement(statement.statement_type)
+    statementMappings
       .map((m, idx) => [m.standardName, idx] as const),
   );
   const orderedMetrics = Array.from(allMetrics).sort((a, b) => {
@@ -142,8 +168,8 @@ function buildStatementTable(statement: FinancialStatement): string {
     const displayName = mapping?.displayName || formatMetricName(metric);
 
     const values = periods.map(p => {
-      const val = p.data[metric];
-      if (val === undefined || val === null) return 'N/A';
+      const val = getValue(p.period, metric);
+      if (val === null) return 'N/A';
       return formatByUnit(val, mapping?.unit);
     });
 
@@ -196,7 +222,7 @@ function buildFactsSummaryTable(facts: import('@dolph/shared').CompanyFacts): st
     const values = periods.map(period => {
       const match = fact.periods.find(p => p.period === period);
       if (!match) return 'N/A';
-      return formatByUnit(match.value, mapping?.unit);
+      return formatByUnit(normalizeMetricValue(fact.metric, match.value), mapping?.unit);
     });
 
     rows.push(`| ${displayName} | ${values.join(' | ')} |`);

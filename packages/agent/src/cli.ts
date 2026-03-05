@@ -44,11 +44,8 @@ function getNarrativeModeFromEnv(): 'llm' | 'deterministic' {
   if (envMode === 'deterministic' || envMode === 'llm') {
     return envMode;
   }
-  // Auto mode: use LLM when credentials are present, deterministic otherwise.
-  const hasOpenAI = !!(process.env['DOLPH_OPENAI_API_KEY'] || process.env['OPENAI_API_KEY']);
-  const hasGemini = !!(process.env['DOLPH_GEMINI_API_KEY'] || process.env['GEMINI_API_KEY']);
-  const hasGroq = !!(process.env['DOLPH_GROQ_API_KEY'] || process.env['GROQ_API_KEY']);
-  return hasOpenAI || hasGemini || hasGroq ? 'llm' : 'deterministic';
+  // Fail-closed default: deterministic unless explicitly set to llm.
+  return 'deterministic';
 }
 
 /** Ensure terminal is in a clean state on exit */
@@ -647,7 +644,7 @@ async function handleSettings(): Promise<void> {
 
     const provider = getValue('DOLPH_LLM_PROVIDER') || 'openai';
     const model = getValue('DOLPH_LLM_MODEL') || 'gpt-4o-mini';
-    const narrativeMode = getValue('DOLPH_NARRATIVE_MODE') || 'auto';
+    const narrativeMode = getValue('DOLPH_NARRATIVE_MODE') || 'deterministic';
     const userAgent = getValue('DOLPH_SEC_USER_AGENT') || '';
 
     console.log('');
@@ -701,9 +698,8 @@ async function handleSettings(): Promise<void> {
         newValueRaw = await select({
           message: 'Select narrative mode:',
           choices: [
-            { name: 'Auto (LLM if key is set, else deterministic)', value: 'auto' },
-            { name: 'LLM always', value: 'llm' },
-            { name: 'Deterministic always', value: 'deterministic' },
+            { name: 'Deterministic (Recommended)', value: 'deterministic' },
+            { name: 'LLM (explicit opt-in)', value: 'llm' },
           ],
         });
         break;

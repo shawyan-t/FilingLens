@@ -1,5 +1,10 @@
 import type { AnalysisContext, FinancialStatement, Report, ReportSection } from '@dolph/shared';
-import { getMappingByName, getMappingsForStatement, formatCompactCurrency } from '@dolph/shared';
+import {
+  getMappingByName,
+  getMappingsForStatement,
+  formatCompactCurrency,
+  formatCompactShares,
+} from '@dolph/shared';
 import {
   PDF_RENDER_RULES,
   clampWords,
@@ -10,11 +15,16 @@ import {
   parseMetricRows,
   stripMarkdown,
 } from './pdf-render-rules.js';
-import { generateCharts } from './charts.js';
+import { generateChartsWithLocks, type ChartPeriodLock } from './charts.js';
+import { packDeterministicPages, type LayoutModule } from './layout-packer.js';
+import { buildCanonicalAnnualPeriodMap, normalizeMetricValue } from './report-facts.js';
+import { analyzeData, type AnalysisInsights } from './analyzer.js';
 
 export interface PdfPageBuildResult {
   bodyHTML: string;
 }
+
+export const PERIOD_BANNER_SLOT = '<!-- DOLPH_PERIOD_BANNER -->';
 
 interface DashboardGroup {
   title: string;
@@ -38,15 +48,26 @@ interface MetricRow {
 export function buildPdfPages(report: Report, context?: AnalysisContext): PdfPageBuildResult {
   const sections = indexSections(report.sections);
   const keyMetricsMarkdown = normalizeMissingDataMarkdown(sections['key_metrics']?.content || '');
-  const metricRows = parseMetricRows(keyMetricsMarkdown);
+  const insights = context ? analyzeData(context) : {};
+  const metricRows = context?.type === 'single' && context.tickers[0]
+    ? metricRowsFromInsights(insights[context.tickers[0]!] || null)
+    : parseMetricRows(keyMetricsMarkdown);
+  const periodLocks: Record<string, ChartPeriodLock> = context
+    ? Object.fromEntries(
+      context.tickers.map(ticker => {
+        const basis = insights[ticker];
+        return [ticker, { current: basis?.snapshotPeriod ?? null, prior: basis?.priorPeriod ?? null }];
+      }),
+    )
+    : {};
   const pages: string[] = [];
 
-  pages.push(buildCoverPage(report, sections, metricRows));
+  pages.push(buildCoverPage(report, sections, metricRows, context, insights));
   pages.push(buildExecutivePage(report, sections, metricRows, context));
-  pages.push(...buildVisualPages(context));
-  pages.push(...buildDashboardPages(keyMetricsMarkdown));
-  pages.push(buildCommentaryPage(report, sections, context, metricRows));
-  pages.push(...buildAppendixPages(report, context, sections));
+  pages.push(...buildVisualPages(context, periodLocks));
+  pages.push(...buildDashboardPages(keyMetricsMarkdown, context, metricRows, periodLocks));
+  pages.push(buildCommentaryPage(report, sections, context, metricRows, periodLocks));
+  pages.push(...buildAppendixPages(report, context, sections, insights));
   pages.push(buildSourcesPage(context, sections, report));
 
   return { bodyHTML: pages.filter(Boolean).join('\n') };
@@ -62,6 +83,8 @@ function buildCoverPage(
   report: Report,
   sections: Record<string, ReportSection>,
   metricRows: MetricRow[],
+  context?: AnalysisContext,
+  insights: Record<string, AnalysisInsights> = {},
 ): string {
   const kpiPriority = [
     'Revenue',
@@ -81,19 +104,16 @@ function buildCoverPage(
   }
 
   const thesis = composeCoverThesis(report, metricRows);
-  const glance = composeCoverBullets(metricRows, sections);
-
-  return `
-    <section class="report-page page-cover">
-      <div class="cover-top">
-        <div class="cover-brand">Dolph Research</div>
-        <div class="cover-family">${escapeHTML(report.type === 'comparison' ? 'Peer Comparison Brief' : 'Equity Research Note')}</div>
-        <div class="cover-date">${escapeHTML(formatDate(report.generated_at))}</div>
-      </div>
-      <div class="cover-hero">
-        <h1>${escapeHTML(report.tickers.join(' vs '))}</h1>
-        <p class="cover-thesis">${escapeHTML(thesis)}</p>
-      </div>
+  const glance = composeCoverBullets(metricRows, sections, report, context, insights);
+  const companyTitle = report.type === 'single'
+    ? (context?.facts?.[report.tickers[0] || '']?.company_name || report.tickers[0] || 'N/A')
+    : report.tickers.join(' vs ');
+  const peerKpiStrip = report.type === 'comparison'
+    ? buildComparisonCoverStrip(context, insights)
+    : '';
+  const singleKpis = report.type === 'comparison'
+    ? ''
+    : `
       <div class="cover-kpis">
         ${cards.map(kpi => `
           <article class="kpi-card">
@@ -103,6 +123,21 @@ function buildCoverPage(
           </article>
         `).join('\n')}
       </div>
+    `;
+
+  return `
+    <section class="report-page page-cover">
+      <div class="cover-top">
+        <div class="cover-brand">Dolph Research</div>
+        <div class="cover-family">${escapeHTML(report.type === 'comparison' ? 'Peer Comparison Brief' : 'Equity Research Note')}</div>
+        <div class="cover-date">${escapeHTML(formatDate(report.generated_at))}</div>
+      </div>
+      <div class="cover-hero">
+        <h1>${escapeHTML(companyTitle)}</h1>
+        <p class="cover-thesis">${escapeHTML(thesis)}</p>
+      </div>
+      ${singleKpis}
+      ${peerKpiStrip}
       <div class="cover-glance">
         <h3>At a glance</h3>
         <ul>
@@ -142,7 +177,15 @@ function composeCoverThesis(report: Report, rows: MetricRow[]): string {
 function composeCoverBullets(
   rows: MetricRow[],
   sections: Record<string, ReportSection>,
+  report: Report,
+  context?: AnalysisContext,
+  insights: Record<string, AnalysisInsights> = {},
 ): string[] {
+  if (report.type === 'comparison' && context) {
+    const bullets = buildComparisonCoverBullets(context, insights);
+    if (bullets.length >= 3) return clipBullets(bullets, PDF_RENDER_RULES.cover.maxBullets);
+  }
+
   const out: string[] = [];
   const revenue = rows.find(r => r.metric === 'Revenue');
   const netIncome = rows.find(r => r.metric === 'Net Income');
@@ -189,6 +232,107 @@ function composeCoverBullets(
   return clipBullets(out.filter(Boolean), PDF_RENDER_RULES.cover.maxBullets);
 }
 
+function buildComparisonCoverStrip(
+  context: AnalysisContext | undefined,
+  insights: Record<string, AnalysisInsights>,
+): string {
+  if (!context || context.tickers.length === 0) return '';
+  const kpiNames = ['Revenue', 'Net Income', 'Operating Margin', 'Free Cash Flow'];
+  const cols = context.tickers.map(ticker => {
+    const company = context.facts[ticker]?.company_name || ticker;
+    const metricMap = insights[ticker]?.keyMetrics || {};
+    const items = kpiNames
+      .map(name => {
+        const datum = metricMap[name];
+        if (!datum || datum.current === null || !isFinite(datum.current)) return null;
+        return {
+          name,
+          value: formatMetricDatumValue(datum.current, datum.unit),
+        };
+      })
+      .filter((item): item is { name: string; value: string } => !!item);
+
+    if (items.length === 0) return '';
+    return `
+      <article class="peer-kpi-col">
+        <h3>${escapeHTML(company)} <span>(${escapeHTML(ticker)})</span></h3>
+        <ul>
+          ${items.map(item => `
+            <li>
+              <span>${escapeHTML(item.name)}</span>
+              <strong>${escapeHTML(item.value)}</strong>
+            </li>
+          `).join('\n')}
+        </ul>
+      </article>
+    `;
+  }).filter(Boolean);
+
+  if (cols.length === 0) return '';
+  return `<div class="peer-kpi-strip">${cols.join('\n')}</div>`;
+}
+
+function buildComparisonCoverBullets(
+  context: AnalysisContext,
+  insights: Record<string, AnalysisInsights>,
+): string[] {
+  const bullets: string[] = [];
+  const byTicker = context.tickers.map(ticker => ({
+    ticker,
+    revenue: insights[ticker]?.keyMetrics['Revenue']?.current ?? null,
+    netMargin: insights[ticker]?.keyMetrics['Net Margin']?.current ?? null,
+    de: insights[ticker]?.keyMetrics['Debt-to-Equity']?.current ?? null,
+    fcf: insights[ticker]?.keyMetrics['Free Cash Flow']?.current ?? null,
+  }));
+
+  const revenueRank = byTicker.filter(x => x.revenue !== null).sort((a, b) => (b.revenue ?? 0) - (a.revenue ?? 0));
+  if (revenueRank.length >= 2) {
+    const lead = revenueRank[0]!;
+    const lag = revenueRank[1]!;
+    bullets.push(
+      `${lead.ticker} leads on revenue scale (${formatCompactCurrency(lead.revenue!, { smallDecimals: 0, compactDecimals: 1 })} vs ${lag.ticker} at ${formatCompactCurrency(lag.revenue!, { smallDecimals: 0, compactDecimals: 1 })}).`,
+    );
+  }
+
+  const marginRank = byTicker.filter(x => x.netMargin !== null).sort((a, b) => (b.netMargin ?? 0) - (a.netMargin ?? 0));
+  if (marginRank.length >= 2) {
+    const lead = marginRank[0]!;
+    bullets.push(`${lead.ticker} currently leads on net margin at ${((lead.netMargin || 0) * 100).toFixed(1)}%.`);
+  }
+
+  const leverageRank = byTicker.filter(x => x.de !== null).sort((a, b) => (a.de ?? 99) - (b.de ?? 99));
+  if (leverageRank.length >= 1) {
+    const conservative = leverageRank[0]!;
+    bullets.push(`${conservative.ticker} has the most conservative leverage profile at ${(conservative.de || 0).toFixed(2)}x debt-to-equity.`);
+  }
+
+  const fcfRank = byTicker.filter(x => x.fcf !== null).sort((a, b) => (b.fcf ?? 0) - (a.fcf ?? 0));
+  if (fcfRank.length >= 1 && bullets.length < 3) {
+    bullets.push(`${fcfRank[0]!.ticker} leads current free cash generation at ${formatCompactCurrency(fcfRank[0]!.fcf!, { smallDecimals: 0, compactDecimals: 1 })}.`);
+  }
+
+  return bullets;
+}
+
+function metricRowsFromInsights(insight: AnalysisInsights | null): MetricRow[] {
+  if (!insight) return [];
+  return Object.entries(insight.keyMetrics).map(([metric, datum]) => ({
+    metric,
+    current: formatMetricDatumValue(datum.current, datum.unit),
+    prior: datum.prior !== null ? formatMetricDatumValue(datum.prior, datum.unit) : 'N/A',
+    change: datum.change !== null ? `${(datum.change * 100).toFixed(1)}%` : 'N/A',
+  }));
+}
+
+function formatMetricDatumValue(value: number, unit: string): string {
+  if (!isFinite(value)) return 'N/A';
+  if (unit === '%') return `${(value * 100).toFixed(1)}%`;
+  if (unit === 'x') return `${value.toFixed(2)}x`;
+  if (unit === 'USD' || unit === 'USD/share' || unit === 'USD/shares') return formatByUnit(value, unit === 'USD' ? 'USD' : 'USD/shares');
+  if (unit === 'shares') return formatCompactShares(value);
+  return `${value}`;
+}
+
 function buildExecutivePage(
   report: Report,
   sections: Record<string, ReportSection>,
@@ -230,15 +374,17 @@ function buildExecutivePage(
   return `
     <section class="report-page page-executive">
       <div class="page-header"><h2>Executive Summary</h2></div>
+      ${PERIOD_BANNER_SLOT}
       <div class="module executive-copy">
         <p class="thesis">${escapeHTML(thesis)}</p>
         ${secondary ? `<p class="thesis-secondary">${escapeHTML(secondary)}</p>` : ''}
       </div>
       <div class="exec-grid">
-        ${buildBulletBlock('Profitability', profitability)}
-        ${buildBulletBlock('Balance Sheet & Liquidity', balance)}
-        ${buildBulletBlock('Cash Flow & Risk', cash)}
+        ${buildProseBlock('Profitability', profitability)}
+        ${buildProseBlock('Balance Sheet & Liquidity', balance)}
+        ${buildProseBlock('Cash Flow & Risk', cash)}
       </div>
+      ${buildExecutiveScorecard(byMetric)}
       ${buildExecutiveStrip(byMetric)}
     </section>
   `;
@@ -380,14 +526,13 @@ function splitIntoSentences(text: string): string[] {
   return parts.length > 0 ? parts : [normalized];
 }
 
-function buildBulletBlock(title: string, bullets: string[]): string {
+function buildProseBlock(title: string, bullets: string[]): string {
   const safe = bullets.length > 0 ? bullets : ['No material signal available in this block for the current snapshot.'];
+  const paragraph = safe.join(' ');
   return `
     <section class="exec-block">
       <h3>${escapeHTML(title)}</h3>
-      <ul>
-        ${safe.map(item => `<li>${escapeHTML(item)}</li>`).join('\n')}
-      </ul>
+      <p>${escapeHTML(paragraph)}</p>
     </section>
   `;
 }
@@ -423,6 +568,40 @@ function buildExecutiveStrip(byMetric: Map<string, MetricRow>): string {
   `;
 }
 
+function buildExecutiveScorecard(byMetric: Map<string, MetricRow>): string {
+  const defs = [
+    'Revenue',
+    'Net Income',
+    'Operating Margin',
+    'Debt-to-Equity',
+    'Current Ratio',
+    'Free Cash Flow',
+  ];
+  const rows = defs
+    .map(name => {
+      const row = byMetric.get(name);
+      if (!row) return null;
+      const current = normalizeDisplayCell(row.current);
+      if (current === 'N/A') return null;
+      return [
+        name,
+        current,
+        normalizeDisplayCell(row.prior),
+        normalizeDisplayCell(row.change),
+      ] as string[];
+    })
+    .filter((r): r is string[] => !!r);
+
+  if (rows.length < 3) return '';
+  const headers = ['Metric', 'Current', 'Prior', 'Change'];
+  return `
+    <section class="module executive-scorecard">
+      <h3>Snapshot Scorecard</h3>
+      ${renderTable(headers, rows)}
+    </section>
+  `;
+}
+
 interface VisualItem {
   kind: 'chart' | 'insight';
   title: string;
@@ -431,9 +610,12 @@ interface VisualItem {
   bullets?: string[];
 }
 
-function buildVisualPages(context?: AnalysisContext): string[] {
+function buildVisualPages(
+  context?: AnalysisContext,
+  periodLocks: Record<string, ChartPeriodLock> = {},
+): string[] {
   if (!context) return [];
-  const chartSet = generateCharts(context);
+  const chartSet = generateChartsWithLocks(context, periodLocks);
   const visuals: VisualItem[] = [];
 
   if (chartSet.revenueMarginChart) visuals.push({
@@ -469,7 +651,7 @@ function buildVisualPages(context?: AnalysisContext): string[] {
 
   const clipped = visuals.slice(0, PDF_RENDER_RULES.visuals.maxChartsPerPage * PDF_RENDER_RULES.visuals.maxVisualPages);
   if (clipped.length % 2 === 1) {
-    const insight = buildVisualInsightCard(context);
+    const insight = buildVisualInsightCard(context, periodLocks);
     if (insight) clipped.push(insight);
   }
 
@@ -480,6 +662,7 @@ function buildVisualPages(context?: AnalysisContext): string[] {
     pages.push(`
       <section class="report-page page-visual">
         <div class="page-header"><h2>${title}</h2></div>
+        ${PERIOD_BANNER_SLOT}
         <div class="visual-grid ${chunk.length === 1 ? 'single' : ''}">
           ${chunk.map(card => {
             if (card.kind === 'insight') {
@@ -508,19 +691,23 @@ function buildVisualPages(context?: AnalysisContext): string[] {
   return pages;
 }
 
-function buildVisualInsightCard(context: AnalysisContext): VisualItem | null {
+function buildVisualInsightCard(
+  context: AnalysisContext,
+  periodLocks: Record<string, ChartPeriodLock> = {},
+): VisualItem | null {
   const ticker = context.tickers[0];
   if (!ticker) return null;
-  const de = getRatioValue(context, ticker, 'de');
-  const roe = getRatioValue(context, ticker, 'roe');
-  const currentRatio = getRatioValue(context, ticker, 'current_ratio');
-  const fcf = getLatestTrendValueForTicker(context, ticker, 'operating_cash_flow');
+  const lock = periodLocks[ticker] || { current: null, prior: null };
+  const de = getRatioValue(context, ticker, 'de', lock.current);
+  const roe = getRatioValue(context, ticker, 'roe', lock.current);
+  const currentRatio = getRatioValue(context, ticker, 'current_ratio', lock.current);
+  const ocf = getLockedMetricValue(context, ticker, 'operating_cash_flow', lock.current);
   const bullets: string[] = [];
 
   if (roe !== null) bullets.push(`Return on equity is ${(roe * 100).toFixed(1)}%, indicating current capital productivity.`);
   if (de !== null) bullets.push(`Debt-to-equity stands at ${de.toFixed(2)}x, a direct read on leverage sensitivity.`);
   if (currentRatio !== null) bullets.push(`Current ratio is ${currentRatio.toFixed(2)}x, framing near-term liquidity coverage.`);
-  if (fcf !== null) bullets.push(`Operating cash flow is ${formatCompactCurrency(fcf, { smallDecimals: 0, compactDecimals: 1 })}.`);
+  if (ocf !== null) bullets.push(`Operating cash flow is ${formatCompactCurrency(ocf, { smallDecimals: 0, compactDecimals: 1 })}.`);
   if (bullets.length === 0) return null;
 
   return {
@@ -531,7 +718,12 @@ function buildVisualInsightCard(context: AnalysisContext): VisualItem | null {
   };
 }
 
-function buildDashboardPages(markdown: string): string[] {
+function buildDashboardPages(
+  markdown: string,
+  context?: AnalysisContext,
+  metricRows: MetricRow[] = [],
+  periodLocks: Record<string, ChartPeriodLock> = {},
+): string[] {
   const parsed = parseDashboardGroups(markdown)
     .filter(g => !/additional metrics/i.test(g.title) || g.rows.length >= 3)
     .map(compactDashboardColumns)
@@ -542,20 +734,37 @@ function buildDashboardPages(markdown: string): string[] {
     return [`
       <section class="report-page page-dashboard">
         <div class="page-header"><h2>Key Metrics Dashboard</h2></div>
+        ${PERIOD_BANNER_SLOT}
         <div class="module metrics-module"><p>No key metrics available.</p></div>
       </section>
     `];
   }
 
+  const modules: LayoutModule[] = groups.map((group, idx) => ({
+    id: `dashboard-group-${idx}`,
+    html: renderTableGroup(group),
+    units: 4 + Math.min(8, group.rows.length),
+    primary: true,
+    priority: 10 + idx,
+  }));
+  const expansionModules = buildDashboardExpansionModules(context, metricRows, periodLocks);
+  const packed = packDeterministicPages(modules, {
+    pageCapacityUnits: 26,
+    minFill: 0.75,
+    minPrimaryModules: 2,
+    expansionModules,
+  });
+
   const pages: string[] = [];
-  const pageGroups = packDashboardGroups(groups, 4);
-  for (let i = 0; i < pageGroups.length; i++) {
+  for (let i = 0; i < packed.length; i++) {
     const title = i === 0 ? 'Key Metrics Dashboard' : `Key Metrics Dashboard (Cont.)`;
+    const moduleHtml = packed[i]!.modules.map(m => m.html).join('\n');
     pages.push(`
       <section class="report-page page-dashboard">
         <div class="page-header"><h2>${title}</h2></div>
+        ${PERIOD_BANNER_SLOT}
         <div class="metrics-grid">
-          ${pageGroups[i]!.map(g => renderTableGroup(g)).join('\n')}
+          ${moduleHtml}
         </div>
       </section>
     `);
@@ -638,22 +847,156 @@ function splitLargeDashboardGroups(groups: DashboardGroup[], maxRows: number): D
   return out;
 }
 
-function packDashboardGroups(groups: DashboardGroup[], pageUnitBudget: number): DashboardGroup[][] {
-  const pages: DashboardGroup[][] = [];
-  let current: DashboardGroup[] = [];
-  let usedUnits = 0;
-  for (const group of groups) {
-    const units = group.rows.length >= 7 ? 2 : 1;
-    if (current.length > 0 && (usedUnits + units > pageUnitBudget || current.length >= 4)) {
-      pages.push(current);
-      current = [];
-      usedUnits = 0;
-    }
-    current.push(group);
-    usedUnits += units;
+function buildDashboardExpansionModules(
+  context: AnalysisContext | undefined,
+  metricRows: MetricRow[],
+  periodLocks: Record<string, ChartPeriodLock> = {},
+): LayoutModule[] {
+  const modules: LayoutModule[] = [];
+  const secondary = buildSecondaryMetricsModule(context, periodLocks);
+  if (secondary) modules.push(secondary);
+  const derived = buildDerivedMetricsStripModule(context, metricRows, periodLocks);
+  if (derived) modules.push(derived);
+  const notes = buildMethodNotesModule(context);
+  if (notes) modules.push(notes);
+  return modules;
+}
+
+function buildSecondaryMetricsModule(
+  context?: AnalysisContext,
+  periodLocks: Record<string, ChartPeriodLock> = {},
+): LayoutModule | null {
+  const ticker = context?.tickers?.[0];
+  if (!ticker || context?.type !== 'single') return null;
+  const periodMap = buildAnnualStatementPeriodMap(context, ticker);
+  const periods = Object.keys(periodMap).sort((a, b) => b.localeCompare(a));
+  if (periods.length === 0) return null;
+  const lock = periodLocks[ticker] || { current: null, prior: null };
+  const currentKey = lock.current && periodMap[lock.current] ? lock.current : periods[0]!;
+  const priorKey = lock.prior && periodMap[lock.prior]
+    ? lock.prior
+    : periods.find(p => p.localeCompare(currentKey) < 0) || null;
+  const current = periodMap[currentKey]!;
+  const prior = priorKey ? periodMap[priorKey] : undefined;
+
+  const defs: Array<{ key: string; label: string; unit: string }> = [
+    { key: 'gross_profit', label: 'Gross Profit', unit: 'USD' },
+    { key: 'current_assets', label: 'Current Assets', unit: 'USD' },
+    { key: 'current_liabilities', label: 'Current Liabilities', unit: 'USD' },
+    { key: 'cash_and_equivalents', label: 'Cash & Equivalents', unit: 'USD' },
+    { key: 'long_term_debt', label: 'Long-Term Debt', unit: 'USD' },
+    { key: 'short_term_debt', label: 'Short-Term Debt', unit: 'USD' },
+    { key: 'shares_outstanding', label: 'Shares Outstanding', unit: 'shares' },
+  ];
+
+  const rows: string[][] = [];
+  for (const def of defs) {
+    const currentVal = current[def.key];
+    if (!isFinite(currentVal)) continue;
+    const priorVal = prior ? prior[def.key] : undefined;
+    rows.push([
+      def.label,
+      formatByUnit(currentVal!, def.unit),
+      (typeof priorVal === 'number' && isFinite(priorVal)) ? formatByUnit(priorVal, def.unit) : 'N/A',
+      'Deterministic carry-through from appendix source lines',
+    ]);
   }
-  if (current.length > 0) pages.push(current);
-  return pages;
+
+  if (rows.length < 3) return null;
+  const headers = ['Metric', 'Current Value', 'Prior Period', 'Note'];
+  return {
+    id: 'dashboard-secondary-metrics',
+    html: `
+      <section class="table-group module tall">
+        <h3>Secondary Metrics</h3>
+        ${renderTable(headers, rows.slice(0, 8))}
+      </section>
+    `,
+    units: 6 + Math.min(8, rows.length),
+    primary: true,
+    priority: 60,
+  };
+}
+
+function buildDerivedMetricsStripModule(
+  context: AnalysisContext | undefined,
+  metricRows: MetricRow[],
+  periodLocks: Record<string, ChartPeriodLock> = {},
+): LayoutModule | null {
+  const revenue = parseRowValue(metricRows, 'Revenue');
+  const fcf = parseRowValue(metricRows, 'Free Cash Flow');
+  const ocf = parseRowValue(metricRows, 'Operating Cash Flow');
+  const opIncome = parseRowValue(metricRows, 'Operating Income');
+  const equity = parseRowValue(metricRows, "Stockholders' Equity");
+  const ticker = context?.tickers?.[0];
+  if (!ticker || context?.type !== 'single') return null;
+
+  const periodMap = buildAnnualStatementPeriodMap(context, ticker);
+  const periods = Object.keys(periodMap).sort((a, b) => b.localeCompare(a));
+  const lock = periodLocks[ticker] || { current: null, prior: null };
+  const currentKey = lock.current && periodMap[lock.current] ? lock.current : (periods[0] || null);
+  const current = currentKey ? periodMap[currentKey] : undefined;
+  const totalDebt = sumFinite(current?.['long_term_debt'], current?.['short_term_debt']);
+  const cash = finiteOrNull(current?.['cash_and_equivalents']);
+
+  if (revenue === null || fcf === null || ocf === null || opIncome === null || equity === null) {
+    return null;
+  }
+  if (totalDebt === null || cash === null || equity <= 0 || revenue === 0) return null;
+
+  const fcfMargin = fcf / revenue;
+  const cfoMargin = ocf / revenue;
+  const roicProxy = opIncome / (equity + totalDebt);
+  const netDebt = totalDebt - cash;
+
+  const cards: Array<{ label: string; value: string; note: string }> = [
+    { label: 'FCF Margin', value: `${(fcfMargin * 100).toFixed(1)}%`, note: 'FCF / Revenue' },
+    { label: 'CFO Margin', value: `${(cfoMargin * 100).toFixed(1)}%`, note: 'CFO / Revenue' },
+    { label: 'ROIC Proxy', value: `${(roicProxy * 100).toFixed(1)}%`, note: 'OpInc / (Equity + Debt)' },
+    { label: 'Net Debt', value: formatByUnit(netDebt, 'USD'), note: 'Debt - Cash' },
+  ];
+
+  return {
+    id: 'dashboard-derived-strip',
+    html: `
+      <section class="module derived-strip">
+        <h3>Derived Metrics Strip</h3>
+        <div class="derived-grid">
+          ${cards.map(card => `
+            <article class="derived-card">
+              <h4>${escapeHTML(card.label)}</h4>
+              <p>${escapeHTML(card.value)}</p>
+              <span>${escapeHTML(card.note)}</span>
+            </article>
+          `).join('')}
+        </div>
+      </section>
+    `,
+    units: 5,
+    primary: false,
+    priority: 70,
+  };
+}
+
+function buildMethodNotesModule(context?: AnalysisContext): LayoutModule | null {
+  if (!context) return null;
+  const bullets = [
+    'Period lock is deterministic: headline, dashboard, and appendix are aligned to the same annual basis.',
+    'Derived metrics are formula-based and only shown when required source inputs are present.',
+    'N/A appears only when a required input is genuinely unavailable in the filing-derived dataset.',
+  ];
+  return {
+    id: 'dashboard-method-notes',
+    html: `
+      <section class="module method-notes">
+        <h3>Method Notes</h3>
+        <ul>${bullets.map(b => `<li>${escapeHTML(b)}</li>`).join('')}</ul>
+      </section>
+    `,
+    units: 4,
+    primary: false,
+    priority: 80,
+  };
 }
 
 function renderTableGroup(group: DashboardGroup): string {
@@ -699,6 +1042,7 @@ function buildCommentaryPage(
   sections: Record<string, ReportSection>,
   context: AnalysisContext | undefined,
   metricRows: MetricRow[],
+  periodLocks: Record<string, ChartPeriodLock> = {},
 ): string {
   const strengthsSrc = report.type === 'comparison'
     ? sections['relative_strengths']?.content || ''
@@ -712,8 +1056,8 @@ function buildCommentaryPage(
 
   const generated = context
     ? (report.type === 'comparison'
-        ? buildComparisonCommentaryFallback(context, metricRows)
-        : buildSingleCommentaryFallback(context, metricRows))
+        ? buildComparisonCommentaryFallback(context, metricRows, periodLocks)
+        : buildSingleCommentaryFallback(context, metricRows, periodLocks))
     : { standout: [], watch: [], interpretation: [] };
 
   const standout = finalizeCommentaryBullets(generated.standout, sectionStandout, 3);
@@ -723,6 +1067,7 @@ function buildCommentaryPage(
   return `
     <section class="report-page page-commentary">
       <div class="page-header"><h2>Commentary</h2></div>
+      ${PERIOD_BANNER_SLOT}
       ${buildCommentaryBlock('What stands out', standout)}
       ${buildCommentaryBlock('Watch items', watch)}
       ${buildCommentaryBlock('Analyst interpretation', interpretation)}
@@ -855,6 +1200,7 @@ function buildCommentaryChecklist(
 function buildSingleCommentaryFallback(
   context: AnalysisContext,
   metricRows: MetricRow[],
+  periodLocks: Record<string, ChartPeriodLock> = {},
 ): { standout: string[]; watch: string[]; interpretation: string[] } {
   const ticker = context.tickers[0]!;
   const standout: string[] = [];
@@ -868,6 +1214,7 @@ function buildSingleCommentaryFallback(
   const currentRatio = findMetric(metricRows, 'Current Ratio');
   const fcf = findMetric(metricRows, 'Free Cash Flow');
   const netMargin = findMetric(metricRows, 'Net Margin');
+  const lock = periodLocks[ticker] || { current: null, prior: null };
   const revTrend = getTrend(context, ticker, 'revenue');
 
   if (revenue) {
@@ -893,10 +1240,15 @@ function buildSingleCommentaryFallback(
   if (de && deNum !== null && deNum > 2) watch.push(`Leverage is elevated at ${de.current}, which raises refinancing sensitivity.`);
   const crNum = currentRatio ? parseNumber(currentRatio.current) : null;
   if (currentRatio && crNum !== null && crNum < 1) watch.push(`Current ratio is ${currentRatio.current}, indicating tight near-term liquidity coverage.`);
-  if (revTrend?.values.length && revTrend.values[revTrend.values.length - 1]?.yoy_growth !== null) {
-    const yoy = revTrend.values[revTrend.values.length - 1]!.yoy_growth!;
-    if (Math.abs(yoy) > 0.35) {
-      watch.push(`Revenue growth of ${(yoy * 100).toFixed(1)}% is unusually large and should be checked for base effects.`);
+  if (revTrend?.values.length) {
+    const point = lock.current
+      ? revTrend.values.find(v => v.period === lock.current) || revTrend.values[revTrend.values.length - 1]
+      : revTrend.values[revTrend.values.length - 1];
+    if (point?.yoy_growth !== null && point?.yoy_growth !== undefined) {
+      const yoy = point.yoy_growth;
+      if (Math.abs(yoy) > 0.35) {
+        watch.push(`Revenue growth of ${(yoy * 100).toFixed(1)}% is unusually large and should be checked for base effects.`);
+      }
     }
   }
   if (watch.length < 2 && de && currentRatio) {
@@ -920,6 +1272,7 @@ function buildSingleCommentaryFallback(
 function buildComparisonCommentaryFallback(
   context: AnalysisContext,
   metricRows: MetricRow[],
+  periodLocks: Record<string, ChartPeriodLock> = {},
 ): { standout: string[]; watch: string[]; interpretation: string[] } {
   const standout: string[] = [];
   const watch: string[] = [];
@@ -929,8 +1282,8 @@ function buildComparisonCommentaryFallback(
   if (context.tickers.length >= 2) {
     const t0 = context.tickers[0]!;
     const t1 = context.tickers[1]!;
-    const rev0 = getLatestTrendValueForTicker(context, t0, 'revenue');
-    const rev1 = getLatestTrendValueForTicker(context, t1, 'revenue');
+    const rev0 = getLockedMetricValue(context, t0, 'revenue', periodLocks[t0]?.current ?? null);
+    const rev1 = getLockedMetricValue(context, t1, 'revenue', periodLocks[t1]?.current ?? null);
     if (rev0 !== null && rev1 !== null) {
       const leader = rev0 >= rev1 ? t0 : t1;
       const lagger = rev0 >= rev1 ? t1 : t0;
@@ -944,7 +1297,7 @@ function buildComparisonCommentaryFallback(
   }
 
   for (const ticker of context.tickers.slice(0, 2)) {
-    const de = getRatioValue(context, ticker, 'de');
+    const de = getRatioValue(context, ticker, 'de', periodLocks[ticker]?.current ?? null);
     if (de !== null && de > 2) {
       watch.push(`${ticker} leverage is elevated at ${de.toFixed(2)}x debt-to-equity.`);
     }
@@ -962,12 +1315,14 @@ function buildAppendixPages(
   report: Report,
   context: AnalysisContext | undefined,
   sections: Record<string, ReportSection>,
+  insights: Record<string, AnalysisInsights> = {},
 ): string[] {
   if (!context) {
     const fallback = normalizeMissingDataMarkdown(sections['financial_statements']?.content || '*Financial statements unavailable.*');
     return [`
       <section class="report-page page-appendix">
         <div class="page-header"><h2>Appendix</h2></div>
+        ${PERIOD_BANNER_SLOT}
         <div class="module appendix-module"><p>${escapeHTML(stripMarkdown(fallback))}</p></div>
       </section>
     `];
@@ -982,14 +1337,16 @@ function buildAppendixPages(
 
   for (let tIdx = 0; tIdx < report.tickers.length; tIdx++) {
     const ticker = report.tickers[tIdx]!;
+    const lockCurrent = insights[ticker]?.snapshotPeriod ?? null;
     const letterBase = String.fromCharCode(65 + Math.min(25, tIdx * 3));
     const statements = context.statements[ticker] || [];
+    const canonicalPeriodMap = buildCanonicalAnnualPeriodMap(context, ticker);
     for (let sIdx = 0; sIdx < statementOrder.length; sIdx++) {
       const def = statementOrder[sIdx]!;
       const statement = statements.find(s => s.statement_type === def.type);
       if (!statement || statement.periods.length === 0) continue;
 
-      const { headers, rows } = statementToTable(statement);
+      const { headers, rows } = statementToTable(statement, canonicalPeriodMap, lockCurrent);
       const chunks = chunkWithMinTail(rows, PDF_RENDER_RULES.tables.maxAppendixRows, 6);
       for (let cIdx = 0; cIdx < chunks.length; cIdx++) {
         const appendixLetter = String.fromCharCode(letterBase.charCodeAt(0) + sIdx);
@@ -1007,52 +1364,74 @@ function buildAppendixPages(
     return [`
       <section class="report-page page-appendix">
         <div class="page-header"><h2>Appendix</h2></div>
+        ${PERIOD_BANNER_SLOT}
         <div class="module appendix-module"><p>Financial statements unavailable for this report run.</p></div>
       </section>
     `];
   }
 
-  // Deterministic page packing by row budget to avoid orphan headers and split modules.
-  const pageBuckets: AppendixModule[][] = [];
-  let current: AppendixModule[] = [];
-  let currentUnits = 0;
-  const pageCapacity = 28;
-  for (const mod of modules) {
-    const units = 4 + mod.rows.length;
-    if (current.length > 0 && currentUnits + units > pageCapacity) {
-      pageBuckets.push(current);
-      current = [];
-      currentUnits = 0;
-    }
-    current.push(mod);
-    currentUnits += units;
-  }
-  if (current.length > 0) pageBuckets.push(current);
+  const packModules: LayoutModule[] = modules.map((mod, idx) => ({
+    id: `appendix-${idx}`,
+    units: 4 + mod.rows.length,
+    primary: true,
+    priority: idx + 1,
+    html: `
+      <section class="appendix-section">
+        <h3>${escapeHTML(mod.title)}</h3>
+        ${renderTable(mod.headers, mod.rows)}
+      </section>
+    `,
+  }));
+  const packed = packDeterministicPages(packModules, {
+    pageCapacityUnits: 40,
+    minFill: 0.75,
+    minPrimaryModules: 1,
+  });
 
-  return pageBuckets.map((bucket, idx) => `
+  return packed.map((bucket, idx) => `
     <section class="report-page page-appendix">
       <div class="page-header"><h2>${idx === 0 ? 'Appendix' : 'Appendix (Cont.)'}</h2></div>
+      ${PERIOD_BANNER_SLOT}
       <div class="module appendix-module">
-        ${bucket.map(mod => `
-          <section class="appendix-section">
-            <h3>${escapeHTML(mod.title)}</h3>
-            ${renderTable(mod.headers, mod.rows)}
-          </section>
-        `).join('\n')}
+        ${bucket.modules.map(mod => mod.html).join('\n')}
       </div>
     </section>
   `);
 }
 
-function statementToTable(statement: FinancialStatement): { headers: string[]; rows: string[][] } {
-  const periods = statement.periods.slice(0, 3);
-  const headers = ['Metric', ...periods.map(p => formatPeriodLabel(p.period))];
+function statementToTable(
+  statement: FinancialStatement,
+  canonicalPeriodMap: Map<string, Record<string, number>>,
+  lockCurrent: string | null = null,
+): { headers: string[]; rows: string[][] } {
+  const selectedPeriods = selectStatementPeriods(statement, canonicalPeriodMap, lockCurrent, 3);
+  const headers = ['Metric', ...selectedPeriods.map(p => formatPeriodLabel(p))];
+  const periodDataMap = new Map(statement.periods.map(p => [p.period, p.data]));
+  const getValue = (period: string, metric: string): number | null => {
+    const canonical = canonicalPeriodMap.get(period)?.[metric];
+    if (canonical !== undefined && isFinite(canonical)) return canonical;
+    const raw = periodDataMap.get(period)?.[metric];
+    if (raw === undefined || raw === null || !isFinite(raw)) return null;
+    return normalizeMetricValue(metric, raw);
+  };
 
+  const mappings = getMappingsForStatement(statement.statement_type);
   const allMetrics = new Set<string>();
-  for (const p of periods) {
-    for (const key of Object.keys(p.data)) allMetrics.add(key);
+  for (const mapping of mappings) {
+    if (selectedPeriods.some(period => getValue(period, mapping.standardName) !== null)) {
+      allMetrics.add(mapping.standardName);
+    }
   }
-  const mappingOrder = new Map(getMappingsForStatement(statement.statement_type).map((m, i) => [m.standardName, i] as const));
+  for (const period of selectedPeriods) {
+    const periodData = periodDataMap.get(period) || {};
+    for (const key of Object.keys(periodData)) {
+      if (selectedPeriods.some(p => getValue(p, key) !== null)) {
+        allMetrics.add(key);
+      }
+    }
+  }
+
+  const mappingOrder = new Map(mappings.map((m, i) => [m.standardName, i] as const));
   const metrics = Array.from(allMetrics).sort((a, b) => {
     const ai = mappingOrder.has(a) ? mappingOrder.get(a)! : 999;
     const bi = mappingOrder.has(b) ? mappingOrder.get(b)! : 999;
@@ -1062,9 +1441,9 @@ function statementToTable(statement: FinancialStatement): { headers: string[]; r
   const rows = metrics.map(metric => {
     const mapping = getMappingByName(metric);
     const display = mapping?.displayName || toTitle(metric);
-    const vals = periods.map(p => {
-      const n = p.data[metric];
-      if (n === undefined || n === null) return 'N/A';
+    const vals = selectedPeriods.map(period => {
+      const n = getValue(period, metric);
+      if (n === null) return 'N/A';
       return formatByUnit(n, mapping?.unit);
     });
     return [display, ...vals];
@@ -1073,17 +1452,48 @@ function statementToTable(statement: FinancialStatement): { headers: string[]; r
   return { headers, rows };
 }
 
+function selectStatementPeriods(
+  statement: FinancialStatement,
+  canonicalPeriodMap: Map<string, Record<string, number>>,
+  lockCurrent: string | null,
+  maxPeriods: number,
+): string[] {
+  const statementPeriods = Array.from(new Set(statement.periods.map(p => p.period)))
+    .sort((a, b) => b.localeCompare(a));
+  const canonicalPeriods = Array.from(canonicalPeriodMap.keys()).sort((a, b) => b.localeCompare(a));
+  const basePeriods = canonicalPeriods.length > 0 ? canonicalPeriods : statementPeriods;
+  if (basePeriods.length === 0) return [];
+
+  const lockIdx = lockCurrent ? basePeriods.indexOf(lockCurrent) : -1;
+  const startIdx = lockIdx >= 0 ? lockIdx : 0;
+  const selected = basePeriods.slice(startIdx, startIdx + maxPeriods);
+  if (selected.length >= maxPeriods) return selected;
+
+  for (const period of statementPeriods) {
+    if (selected.length >= maxPeriods) break;
+    if (!selected.includes(period)) selected.push(period);
+  }
+
+  return selected.slice(0, maxPeriods);
+}
+
 function formatByUnit(n: number, unit?: string): string {
   if (!isFinite(n)) return 'N/A';
   if (unit === '%' || unit === 'pure') return n.toFixed(2);
   if (unit === 'USD/share' || unit === 'USD/shares') return `$${n.toFixed(2)}`;
-  if (unit === 'shares') return `${(n / 1e9).toFixed(2)}B`;
+  if (unit === 'shares') return formatCompactShares(n);
   return formatUsdInBillions(n);
 }
 
 function formatUsdInBillions(n: number): string {
   const sign = n < 0 ? '-' : '';
-  const b = Math.abs(n) / 1e9;
+  const abs = Math.abs(n);
+  // Use $M below $1B to preserve precision in dashboard/source coherence checks.
+  if (abs < 1_000_000_000) {
+    const m = abs / 1e6;
+    return `${sign}$${m.toFixed(m >= 10 ? 0 : 1)}M`;
+  }
+  const b = abs / 1e9;
   if (b >= 100) return `${sign}$${b.toFixed(0)}B`;
   if (b >= 10) return `${sign}$${b.toFixed(1)}B`;
   return `${sign}$${b.toFixed(2)}B`;
@@ -1108,14 +1518,24 @@ function buildSourcesPage(
   sections: Record<string, ReportSection>,
   report: Report,
 ): string {
-  const sourceRows: Array<{ ticker: string; form: string; filed: string; url: string }> = [];
+  const sourceRows: Array<{
+    ticker: string;
+    cik: string;
+    accession: string;
+    form: string;
+    filed: string;
+    url: string;
+  }> = [];
   if (context) {
     for (const ticker of context.tickers) {
       const filings = context.filings[ticker] || [];
+      const cik = context.facts[ticker]?.cik || 'N/A';
       const picked = filings.slice(0, 6);
       for (const filing of picked) {
         sourceRows.push({
           ticker,
+          cik,
+          accession: filing.accession_number,
           form: filing.filing_type,
           filed: filing.date_filed,
           url: filing.primary_document_url,
@@ -1129,12 +1549,14 @@ function buildSourcesPage(
     ? `
       <table class="sources-table">
         <thead>
-          <tr><th>Ticker</th><th>Form</th><th>Filed</th><th>Primary Document</th></tr>
+          <tr><th>Ticker</th><th>CIK</th><th>Accession</th><th>Form</th><th>Filed</th><th>Primary Document</th></tr>
         </thead>
         <tbody>
           ${sourceRows.map(r => `
             <tr>
               <td>${escapeHTML(r.ticker)}</td>
+              <td>${escapeHTML(r.cik)}</td>
+              <td>${escapeHTML(r.accession)}</td>
               <td>${escapeHTML(r.form)}</td>
               <td>${escapeHTML(r.filed)}</td>
               <td class="source-url">${escapeHTML(r.url)}</td>
@@ -1178,6 +1600,35 @@ function findMetric(rows: MetricRow[], metric: string): MetricRow | null {
   return rows.find(r => r.metric === metric) || null;
 }
 
+function parseRowValue(rows: MetricRow[], metric: string): number | null {
+  const row = rows.find(r => r.metric === metric);
+  if (!row) return null;
+  return parseNumber(normalizeDisplayCell(row.current));
+}
+
+function finiteOrNull(value: unknown): number | null {
+  return typeof value === 'number' && isFinite(value) ? value : null;
+}
+
+function sumFinite(a: unknown, b: unknown): number | null {
+  const aNum = finiteOrNull(a);
+  const bNum = finiteOrNull(b);
+  if (aNum === null && bNum === null) return null;
+  return (aNum ?? 0) + (bNum ?? 0);
+}
+
+function buildAnnualStatementPeriodMap(
+  context: AnalysisContext,
+  ticker: string,
+): Record<string, Record<string, number>> {
+  const out: Record<string, Record<string, number>> = {};
+  const canonical = buildCanonicalAnnualPeriodMap(context, ticker);
+  for (const [period, values] of canonical) {
+    out[period] = { ...values };
+  }
+  return out;
+}
+
 function parseNumber(display: string): number | null {
   const normalized = display.replace(/,/g, '').replace(/\$/g, '').replace(/%/g, '').trim();
   const suffix = normalized.slice(-1).toUpperCase();
@@ -1200,7 +1651,16 @@ function latestTrendPeriod(context: AnalysisContext, ticker: string, metric: str
   return trend.values[trend.values.length - 1]?.period || null;
 }
 
-function getLatestTrendValueForTicker(context: AnalysisContext, ticker: string, metric: string): number | null {
+function getLockedMetricValue(
+  context: AnalysisContext,
+  ticker: string,
+  metric: string,
+  period: string | null,
+): number | null {
+  const periodMap = buildAnnualStatementPeriodMap(context, ticker);
+  if (period && periodMap[period] && isFinite(periodMap[period]![metric] || NaN)) {
+    return periodMap[period]![metric]!;
+  }
   const trend = getTrend(context, ticker, metric);
   if (!trend || trend.values.length === 0) return null;
   const latest = trend.values[trend.values.length - 1];
@@ -1208,8 +1668,16 @@ function getLatestTrendValueForTicker(context: AnalysisContext, ticker: string, 
   return latest.value;
 }
 
-function getRatioValue(context: AnalysisContext, ticker: string, ratioName: string): number | null {
-  const ratio = (context.ratios[ticker] || []).find(r => r.name === ratioName);
+function getRatioValue(
+  context: AnalysisContext,
+  ticker: string,
+  ratioName: string,
+  period: string | null = null,
+): number | null {
+  const ratio = period
+    ? (context.ratios[ticker] || []).find(r => r.name === ratioName && r.period === period) ||
+      (context.ratios[ticker] || []).find(r => r.name === ratioName)
+    : (context.ratios[ticker] || []).find(r => r.name === ratioName);
   if (!ratio || !isFinite(ratio.value)) return null;
   return ratio.value;
 }

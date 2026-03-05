@@ -74,89 +74,59 @@ function buildSingleExecutiveSummary(
   insights: AnalysisInsights,
 ): string {
   const f = extractFacts(insights);
-  const lines: string[] = [];
   const period = insights.snapshotPeriod || 'latest annual period';
-
-  const thesisParts: string[] = [];
+  const p1Parts: string[] = [];
   if (f.revenue && f.netIncome) {
     const revChange = f.revenue.change !== null ? ` (${fmtPct(f.revenue.change)} YoY)` : '';
     const niChange = f.netIncome.change !== null ? ` (${fmtPct(f.netIncome.change)} YoY)` : '';
-    thesisParts.push(
+    p1Parts.push(
       `${ticker} reports ${fmtCurrency(f.revenue.current)} revenue${revChange} and ${fmtCurrency(f.netIncome.current)} net income${niChange} for ${period}.`,
     );
   } else if (f.revenue) {
-    thesisParts.push(`${ticker} reports ${fmtCurrency(f.revenue.current)} revenue for ${period}.`);
+    p1Parts.push(`${ticker} reports ${fmtCurrency(f.revenue.current)} revenue for ${period}.`);
+  } else {
+    p1Parts.push(`${ticker} has limited period-coherent annual coverage in this run, so interpretation should stay close to the verified statement tables.`);
   }
-
   if (f.operatingMargin || f.netMargin) {
     const marginBits: string[] = [];
     if (f.operatingMargin) marginBits.push(`operating margin ${fmtPct(f.operatingMargin.current)}`);
     if (f.netMargin) marginBits.push(`net margin ${fmtPct(f.netMargin.current)}`);
-    thesisParts.push(`Profitability remains anchored by ${marginBits.join(' and ')}.`);
+    p1Parts.push(`Profitability is currently defined by ${marginBits.join(' and ')}.`);
   }
 
-  if (f.debtToEquity || f.currentRatio) {
-    const leverage = f.debtToEquity?.current;
-    const liquidity = f.currentRatio?.current;
-    if (leverage !== undefined && liquidity !== undefined) {
-      if (leverage < 0.3 && liquidity >= 1.5) {
-        thesisParts.push(`Balance-sheet posture is conservative (${fmtRatio(leverage)} debt-to-equity, ${fmtRatio(liquidity)} current ratio).`);
-      } else if (leverage > 2) {
-        thesisParts.push(`Leverage is elevated at ${fmtRatio(leverage)}, making refinancing and rate sensitivity the key watch item.`);
-      } else {
-        thesisParts.push(`Balance-sheet profile is mixed (${fmtRatio(leverage)} debt-to-equity, ${fmtRatio(liquidity)} current ratio).`);
-      }
+  const p2Parts: string[] = [];
+  if (f.debtToEquity && f.currentRatio) {
+    const leverage = f.debtToEquity.current;
+    const liquidity = f.currentRatio.current;
+    if (Math.abs(leverage) < 0.3 && liquidity >= 1.5) {
+      p2Parts.push(`Balance-sheet posture is conservative at ${fmtRatio(leverage)} debt-to-equity with ${fmtRatio(liquidity)} current ratio.`);
+    } else if (Math.abs(leverage) > 2) {
+      p2Parts.push(`Leverage is elevated at ${fmtRatio(leverage)} debt-to-equity, which raises refinancing sensitivity despite current liquidity at ${fmtRatio(liquidity)}.`);
+    } else {
+      p2Parts.push(`Balance-sheet profile is mixed at ${fmtRatio(leverage)} debt-to-equity and ${fmtRatio(liquidity)} current ratio.`);
     }
-  }
-
-  if (thesisParts.length === 0) {
-    thesisParts.push(`${ticker} has limited period-coherent annual inputs in this run; interpretation should rely on verified statement tables.`);
-  }
-  lines.push(thesisParts.join(' '));
-  lines.push('');
-
-  lines.push('### Profitability');
-  if (f.operatingMargin) {
-    lines.push(`- Operating margin is ${fmtPct(f.operatingMargin.current)}${formatChangeSuffix(f.operatingMargin.change)}.`);
-  }
-  if (f.netMargin) {
-    lines.push(`- Net margin is ${fmtPct(f.netMargin.current)}${formatChangeSuffix(f.netMargin.change)}.`);
-  }
-  if (!f.operatingMargin && !f.netMargin) {
-    lines.push('- Period-coherent margin inputs are limited in this run.');
-  }
-  lines.push('');
-
-  lines.push('### Balance Sheet & Liquidity');
-  if (f.debtToEquity) {
-    lines.push(`- Debt-to-equity is ${fmtRatio(f.debtToEquity.current)}.`);
-  }
-  if (f.currentRatio) {
-    lines.push(`- Current ratio is ${fmtRatio(f.currentRatio.current)}${formatChangeSuffix(f.currentRatio.change)}.`);
+  } else if (f.currentRatio) {
+    p2Parts.push(`Current ratio is ${fmtRatio(f.currentRatio.current)} in the locked annual basis.`);
   }
   if (f.quickRatio) {
-    lines.push(`- Quick ratio is ${fmtRatio(f.quickRatio.current)}.`);
+    p2Parts.push(`Quick ratio is ${fmtRatio(f.quickRatio.current)} on the same period basis.`);
   }
-  if (!f.debtToEquity && !f.currentRatio && !f.quickRatio) {
-    lines.push('- Balance-sheet liquidity fields are not fully available in this annual snapshot.');
-  }
-  lines.push('');
 
-  lines.push('### Cash Flow & Risk');
+  const p3Parts: string[] = [];
   if (f.operatingCashFlow) {
-    lines.push(`- Operating cash flow is ${fmtCurrency(f.operatingCashFlow.current)}${formatChangeSuffix(f.operatingCashFlow.change)}.`);
+    p3Parts.push(`Operating cash flow is ${fmtCurrency(f.operatingCashFlow.current)}${formatChangeSuffix(f.operatingCashFlow.change)}.`);
   }
   if (f.freeCashFlow) {
-    lines.push(`- Free cash flow is ${fmtCurrency(f.freeCashFlow.current)}${formatChangeSuffix(f.freeCashFlow.change)}.`);
+    p3Parts.push(`Free cash flow is ${fmtCurrency(f.freeCashFlow.current)}${formatChangeSuffix(f.freeCashFlow.change)}.`);
   }
   if (f.capex) {
-    lines.push(`- Capital expenditures are ${fmtCurrency(Math.abs(f.capex.current))}.`);
+    p3Parts.push(`Capital expenditures are ${fmtCurrency(Math.abs(f.capex.current))}, framing reinvestment intensity.`);
   }
-  if (!f.operatingCashFlow && !f.freeCashFlow) {
-    lines.push('- Cash-flow evidence is limited; funding durability should be treated as unresolved.');
+  if (p3Parts.length === 0) {
+    p3Parts.push('Cash-flow evidence is limited in the locked annual period, so funding durability remains unresolved.');
   }
 
-  return lines.join('\n');
+  return [p1Parts.join(' '), p2Parts.join(' '), p3Parts.join(' ')].filter(Boolean).join('\n\n');
 }
 
 function buildSingleTrendAnalysis(insights: AnalysisInsights): string {
@@ -188,7 +158,7 @@ function buildSingleRiskFactors(insights: AnalysisInsights): string {
 
   return [
     '### Watch Items',
-    ...insights.redFlags.slice(0, 5).map(flag => `- **${flag.flag}:** ${flag.detail}`),
+    ...insights.redFlags.slice(0, 5).map(flag => bullet(`**${flag.flag}:** ${flag.detail}`, ['risk_flag'])),
   ].join('\n');
 }
 
@@ -202,28 +172,28 @@ function buildSingleAnalystNotes(
 
   lines.push('### What Stands Out');
   if (strengths.length === 0) {
-    lines.push(`- ${ticker}'s profile is currently balanced without a dominant quantitative outperformance signal.`);
+    lines.push(bullet(`${ticker}'s profile is currently balanced without a dominant quantitative outperformance signal.`, ['strengths']));
   } else {
     for (const strength of strengths) {
-      lines.push(`- ${strength.detail}`);
+      lines.push(bullet(strength.detail, [strength.metric]));
     }
   }
 
   lines.push('');
   lines.push('### Watch Items');
   if (flags.length === 0) {
-    lines.push('- No critical flags are active; monitor execution against current margin and cash benchmarks.');
+    lines.push(bullet('No critical flags are active; monitor execution against current margin and cash benchmarks.', ['red_flags']));
   } else {
     for (const flag of flags) {
-      lines.push(`- ${flag.detail}`);
+      lines.push(bullet(flag.detail, ['red_flags']));
     }
   }
 
   lines.push('');
   lines.push('### Analyst Interpretation');
-  lines.push(`- Current conclusions are anchored to a period-locked annual basis (${insights.snapshotPeriod ?? 'N/A'}).`);
+  lines.push(bullet(`Current conclusions are anchored to a period-locked annual basis (${insights.snapshotPeriod ?? 'N/A'}).`, ['period_basis.current']));
   if (insights.priorPeriod) {
-    lines.push(`- Prior comparisons use ${insights.priorPeriod}; metrics without required inputs remain intentionally unfilled.`);
+    lines.push(bullet(`Prior comparisons use ${insights.priorPeriod}; metrics without required inputs remain intentionally unfilled.`, ['period_basis.prior']));
   }
 
   return lines.join('\n');
@@ -246,21 +216,23 @@ function buildComparisonExecutiveSummary(
     };
   });
 
-  const lines: string[] = ['### Peer Snapshot'];
-  for (const s of summaries) {
+  const lines: string[] = [];
+  const snapshots = summaries.map(s => {
     const rev = s.revenue !== null ? fmtCurrency(s.revenue) : 'N/A';
     const ni = s.netIncome !== null ? fmtCurrency(s.netIncome) : 'N/A';
     const margin = s.netMargin !== null ? fmtPct(s.netMargin) : 'N/A';
     const de = s.debtToEquity !== null ? fmtRatio(s.debtToEquity) : 'N/A';
-    lines.push(`- **${s.ticker}:** Revenue ${rev}, net income ${ni}, net margin ${margin}, debt-to-equity ${de} (period ${s.period}).`);
+    return `${s.ticker} reports ${rev} revenue, ${ni} net income, ${margin} net margin, and ${de} debt-to-equity (period ${s.period})`;
+  });
+  if (snapshots.length > 0) {
+    lines.push(`${snapshots.join('; ')}.`);
   }
 
   const revenueLeader = [...summaries]
     .filter(s => s.revenue !== null)
     .sort((a, b) => (b.revenue ?? 0) - (a.revenue ?? 0))[0];
   if (revenueLeader) {
-    lines.push('');
-    lines.push(`**Takeaway:** ${revenueLeader.ticker} is the scale leader by current annual revenue in this peer set.`);
+    lines.push(`${revenueLeader.ticker} is the current scale leader by annual revenue in this peer set.`);
   }
 
   return lines.join('\n');
@@ -275,10 +247,10 @@ function buildRelativeStrengths(
     lines.push(`### ${ticker} — What Stands Out`);
     const strengths = insights[ticker]?.strengths || [];
     if (strengths.length === 0) {
-      lines.push(`- No clear quantitative outperformance signal is active for ${ticker} in the current period lock.`);
+      lines.push(bullet(`No clear quantitative outperformance signal is active for ${ticker} in the current period lock.`, [`${ticker}.strengths`]));
     } else {
       for (const strength of strengths.slice(0, 4)) {
-        lines.push(`- ${strength.detail}`);
+        lines.push(bullet(strength.detail, [`${ticker}.${strength.metric}`]));
       }
     }
     lines.push('');
@@ -294,10 +266,10 @@ function buildComparisonRisk(
   for (const ticker of context.tickers) {
     const flags = insights[ticker]?.redFlags || [];
     if (flags.length === 0) {
-      lines.push(`- **${ticker}:** No major quantitative red flag is active in the current annual snapshot.`);
+      lines.push(bullet(`**${ticker}:** No major quantitative red flag is active in the current annual snapshot.`, [`${ticker}.red_flags`]));
       continue;
     }
-    lines.push(`- **${ticker}:** ${flags.slice(0, 2).map(f => f.detail).join(' ')}`);
+    lines.push(bullet(`**${ticker}:** ${flags.slice(0, 2).map(f => f.detail).join(' ')}`, [`${ticker}.red_flags`]));
   }
   return lines.join('\n');
 }
@@ -310,7 +282,7 @@ function buildComparisonNotes(
   for (const ticker of context.tickers) {
     const strengthCount = insights[ticker]?.strengths.length ?? 0;
     const riskCount = insights[ticker]?.redFlags.length ?? 0;
-    lines.push(`- **${ticker}:** ${strengthCount} strength signals and ${riskCount} active risk signals in the locked annual basis.`);
+    lines.push(bullet(`**${ticker}:** ${strengthCount} strength signals and ${riskCount} active risk signals in the locked annual basis.`, [`${ticker}.strength_count`, `${ticker}.risk_count`]));
   }
   lines.push('');
   lines.push('Prioritize next-pass work on margin durability, balance-sheet flexibility, and cash conversion differentials across the peer set.');
@@ -384,4 +356,10 @@ export function generateDeterministicNarrative(
 function formatChangeSuffix(change: number | null): string {
   if (change === null || !isFinite(change)) return '';
   return ` (${fmtPct(change)} YoY)`;
+}
+
+function bullet(text: string, factIds: string[]): string {
+  const ids = factIds.filter(Boolean).join(',');
+  if (!ids) return `- ${text}`;
+  return `- ${text} <!-- facts:${ids} -->`;
 }

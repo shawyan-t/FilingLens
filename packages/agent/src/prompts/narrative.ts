@@ -181,11 +181,11 @@ DATA:
 ${data.dataBlock}
 
 INSTRUCTIONS:
-- For each company, write 2-3 bullet points on their competitive advantages
+- For each company, write one concise paragraph on competitive advantages
 - Base every point on specific numbers from the DATA
-- Use ### subheadings for each company (e.g., "### AAPL", "### MSFT")
+- Use markdown subheadings for each company (e.g., "### AAPL", "### MSFT")
 - Do NOT start with a top-level heading
-- Do NOT use vague language — every bullet must cite a specific number
+- Do NOT use vague language — every claim must cite a specific number
 
 Output the relative strengths content only.`;
     },

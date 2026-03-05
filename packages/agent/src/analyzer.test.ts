@@ -163,4 +163,31 @@ describe('analyzer period lock + completeness', () => {
       'expected gross profit sanity flag',
     );
   });
+
+  it('synthesizes total debt from components and normalizes cash outflow signs', () => {
+    const ticker = 'FANG';
+    const income = makeStatement(ticker, 'income', [
+      { period: '2025-12-31', data: { revenue: 15_000_000_000, net_income: 1_660_000_000, operating_income: 1_270_000_000 } },
+      { period: '2024-12-31', data: { revenue: 11_100_000_000, net_income: 3_340_000_000, operating_income: 1_900_000_000 } },
+    ]);
+    const balance = makeStatement(ticker, 'balance_sheet', [
+      { period: '2025-12-31', data: { stockholders_equity: 43_000_000_000, long_term_debt: 13_700_000_000, short_term_debt: 760_000_000 } },
+      { period: '2024-12-31', data: { stockholders_equity: 40_000_000_000, long_term_debt: 12_900_000_000, short_term_debt: 700_000_000 } },
+    ]);
+    const cash = makeStatement(ticker, 'cash_flow', [
+      { period: '2025-12-31', data: { operating_cash_flow: 8_760_000_000, capex: 970_000_000, dividends_paid: 1_160_000_000 } },
+      { period: '2024-12-31', data: { operating_cash_flow: 6_220_000_000, capex: 740_000_000, dividends_paid: 1_020_000_000 } },
+    ]);
+    const facts = makeFacts(ticker, {
+      '2025-12-31': { revenue: 15_000_000_000, net_income: 1_660_000_000 },
+      '2024-12-31': { revenue: 11_100_000_000, net_income: 3_340_000_000 },
+    });
+
+    const insights = analyzeData(makeContext(ticker, [income, balance, cash], facts))[ticker]!;
+    assert.equal(insights.keyMetrics['Total Debt']?.current, 14_460_000_000);
+    assert.ok(Math.abs((insights.keyMetrics['Debt-to-Equity']?.current ?? 0) - (14_460_000_000 / 43_000_000_000)) < 1e-9);
+    // Outflow sign normalization should force capex negative in the ledger while keeping FCF deterministic.
+    assert.equal(insights.keyMetrics['Capital Expenditures']?.current, -970_000_000);
+    assert.equal(insights.keyMetrics['Free Cash Flow']?.current, 7_790_000_000);
+  });
 });

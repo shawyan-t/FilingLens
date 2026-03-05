@@ -153,16 +153,27 @@ export const XBRL_MAPPINGS: XBRLMapping[] = [
     displayName: 'Shares Outstanding',
     xbrlTags: [
       'CommonStockSharesOutstanding',
+      'EntityCommonStockSharesOutstanding',
+    ],
+    ifrsTags: [
+      'IssuedCapitalShares',
+    ],
+    statement: 'balance_sheet',
+    unit: 'shares',
+    higherIsBetter: false,
+  },
+  {
+    standardName: 'weighted_avg_shares_diluted',
+    displayName: 'Weighted Avg Shares (Diluted)',
+    xbrlTags: [
       'WeightedAverageNumberOfShareOutstandingBasicAndDiluted',
       'WeightedAverageNumberOfDilutedSharesOutstanding',
-      'EntityCommonStockSharesOutstanding',
     ],
     ifrsTags: [
       'AdjustedWeightedAverageShares',
       'WeightedAverageShares',
-      'IssuedCapitalShares',
     ],
-    statement: 'balance_sheet',
+    statement: 'income',
     unit: 'shares',
     higherIsBetter: false,
   },
@@ -189,6 +200,36 @@ export const XBRL_MAPPINGS: XBRLMapping[] = [
     ifrsTags: [
       'SellingGeneralAndAdministrativeExpense',
       'SellingExpense',
+    ],
+    statement: 'income',
+    unit: 'USD',
+    higherIsBetter: false,
+  },
+  {
+    standardName: 'pretax_income',
+    displayName: 'Pretax Income',
+    xbrlTags: [
+      'IncomeBeforeTax',
+      'IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest',
+    ],
+    ifrsTags: [
+      'ProfitLossBeforeTax',
+      'ProfitLossBeforeTaxFromContinuingOperations',
+    ],
+    statement: 'income',
+    unit: 'USD',
+    higherIsBetter: true,
+  },
+  {
+    standardName: 'income_tax_expense',
+    displayName: 'Income Tax Expense',
+    xbrlTags: [
+      'IncomeTaxExpenseBenefit',
+      'IncomeTaxesPaidNet',
+    ],
+    ifrsTags: [
+      'IncomeTaxExpenseContinuingOperations',
+      'IncomeTaxExpense',
     ],
     statement: 'income',
     unit: 'USD',
@@ -365,6 +406,121 @@ export const XBRL_MAPPINGS: XBRLMapping[] = [
     higherIsBetter: true,
   },
   {
+    standardName: 'marketable_securities',
+    displayName: 'Marketable Securities',
+    xbrlTags: [
+      'MarketableSecuritiesCurrent',
+      'AvailableForSaleSecuritiesCurrent',
+      'ShortTermInvestments',
+    ],
+    ifrsTags: [
+      'CurrentFinancialAssetsAtFairValueThroughProfitOrLoss',
+      'ShorttermInvestments',
+    ],
+    statement: 'balance_sheet',
+    unit: 'USD',
+    higherIsBetter: true,
+  },
+  {
+    standardName: 'other_current_assets',
+    displayName: 'Other Current Assets',
+    xbrlTags: [
+      'OtherAssetsCurrent',
+      'PrepaidExpenseAndOtherAssetsCurrent',
+    ],
+    ifrsTags: [
+      'OtherCurrentAssets',
+    ],
+    statement: 'balance_sheet',
+    unit: 'USD',
+    higherIsBetter: true,
+  },
+  {
+    standardName: 'accounts_payable',
+    displayName: 'Accounts Payable',
+    xbrlTags: [
+      'AccountsPayableCurrent',
+      'AccountsPayable',
+    ],
+    ifrsTags: [
+      'TradePayablesCurrent',
+      'CurrentTradePayables',
+    ],
+    statement: 'balance_sheet',
+    unit: 'USD',
+    higherIsBetter: false,
+  },
+  {
+    standardName: 'accrued_expenses',
+    displayName: 'Accrued Expenses',
+    xbrlTags: [
+      'AccruedLiabilitiesCurrent',
+      'AccruedExpensesCurrent',
+    ],
+    ifrsTags: [
+      'AccruedLiabilitiesCurrent',
+    ],
+    statement: 'balance_sheet',
+    unit: 'USD',
+    higherIsBetter: false,
+  },
+  {
+    standardName: 'other_current_liabilities',
+    displayName: 'Other Current Liabilities',
+    xbrlTags: [
+      'OtherLiabilitiesCurrent',
+    ],
+    ifrsTags: [
+      'OtherCurrentLiabilities',
+    ],
+    statement: 'balance_sheet',
+    unit: 'USD',
+    higherIsBetter: false,
+  },
+  {
+    standardName: 'retained_earnings',
+    displayName: 'Retained Earnings',
+    xbrlTags: [
+      'RetainedEarningsAccumulatedDeficit',
+      'RetainedEarningsAppropriated',
+    ],
+    ifrsTags: [
+      'RetainedEarnings',
+    ],
+    statement: 'balance_sheet',
+    unit: 'USD',
+    higherIsBetter: true,
+  },
+  {
+    standardName: 'accumulated_other_comprehensive_income',
+    displayName: 'AOCI',
+    xbrlTags: [
+      'AccumulatedOtherComprehensiveIncomeLossNetOfTax',
+    ],
+    ifrsTags: [
+      'OtherReserves',
+      'AccumulatedOtherComprehensiveIncome',
+    ],
+    statement: 'balance_sheet',
+    unit: 'USD',
+    higherIsBetter: true,
+  },
+  {
+    standardName: 'treasury_stock',
+    displayName: 'Treasury Stock',
+    xbrlTags: [
+      'TreasuryStockValue',
+      'CommonStocksIncludingAdditionalPaidInCapitalTreasuryStock',
+    ],
+    ifrsTags: [
+      'TreasuryShares',
+      'RepurchasedOwnShares',
+    ],
+    statement: 'balance_sheet',
+    unit: 'USD',
+    higherIsBetter: false,
+  },
+  {
     standardName: 'goodwill',
     displayName: 'Goodwill',
     xbrlTags: [
@@ -466,6 +622,81 @@ export const XBRL_MAPPINGS: XBRLMapping[] = [
     statement: 'cash_flow',
     unit: 'USD',
     higherIsBetter: false,
+  },
+  {
+    standardName: 'depreciation_and_amortization',
+    displayName: 'Depreciation & Amortization',
+    xbrlTags: [
+      'DepreciationDepletionAndAmortization',
+      'DepreciationAmortizationAndAccretionNet',
+      'Depreciation',
+      'AmortizationOfIntangibleAssets',
+    ],
+    ifrsTags: [
+      'DepreciationAmortisationAndImpairment',
+      'DepreciationAndAmortisationExpense',
+    ],
+    statement: 'cash_flow',
+    unit: 'USD',
+    higherIsBetter: false,
+  },
+  {
+    standardName: 'debt_repayment',
+    displayName: 'Debt Repayment',
+    xbrlTags: [
+      'RepaymentsOfLongTermDebt',
+      'RepaymentsOfDebt',
+      'RepaymentsOfDebtAndCapitalLeaseObligations',
+    ],
+    ifrsTags: [
+      'RepaymentsOfBorrowings',
+    ],
+    statement: 'cash_flow',
+    unit: 'USD',
+    higherIsBetter: false,
+  },
+  {
+    standardName: 'net_change_in_cash',
+    displayName: 'Net Change in Cash',
+    xbrlTags: [
+      'CashAndCashEquivalentsPeriodIncreaseDecrease',
+      'CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalentsPeriodIncreaseDecreaseIncludingExchangeRateEffect',
+    ],
+    ifrsTags: [
+      'IncreaseDecreaseInCashAndCashEquivalents',
+    ],
+    statement: 'cash_flow',
+    unit: 'USD',
+    higherIsBetter: true,
+  },
+  {
+    standardName: 'cash_beginning',
+    displayName: 'Cash at Beginning of Period',
+    xbrlTags: [
+      'CashAndCashEquivalentsAtCarryingValueBeginningOfPeriod',
+      'CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents',
+    ],
+    ifrsTags: [
+      'CashAndCashEquivalentsAtBeginningOfPeriod',
+    ],
+    statement: 'cash_flow',
+    unit: 'USD',
+    higherIsBetter: true,
+  },
+  {
+    standardName: 'cash_ending',
+    displayName: 'Cash at End of Period',
+    xbrlTags: [
+      'CashAndCashEquivalentsAtCarryingValue',
+      'CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents',
+    ],
+    ifrsTags: [
+      'CashAndCashEquivalents',
+      'CashAndCashEquivalentsAtEndOfPeriod',
+    ],
+    statement: 'cash_flow',
+    unit: 'USD',
+    higherIsBetter: true,
   },
 ];
 

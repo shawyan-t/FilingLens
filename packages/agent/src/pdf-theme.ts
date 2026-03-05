@@ -20,9 +20,9 @@ export const PDF_THEME = {
     burgundy: '#6A3B32',
   },
   fonts: {
-    title: "'EB Garamond', 'Libre Baskerville', 'Source Serif 4', Georgia, serif",
-    body: "'Source Sans 3', 'Inter', 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif",
-    numeric: "'Source Sans 3', 'Inter', 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif",
+    title: "'Times New Roman', Times, serif",
+    body: "'Times New Roman', Times, serif",
+    numeric: "'Times New Roman', Times, serif",
   },
   page: {
     size: 'Letter',

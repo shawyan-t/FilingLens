@@ -38,6 +38,42 @@ const CSS = `
     padding-bottom: 8px;
   }
 
+  .period-banner {
+    border: 1px solid ${C.stoneBeige};
+    border-radius: 10px;
+    background: ${C.parchment};
+    padding: 8px 12px;
+    margin-top: 2px;
+  }
+
+  .period-banner-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .period-chip {
+    display: inline-block;
+    font-size: 8.6pt;
+    color: ${C.secondaryText};
+    background: ${C.warmIvory};
+    border: 1px solid ${C.stoneBeige};
+    border-radius: 999px;
+    padding: 3px 8px;
+  }
+
+  .period-chip strong {
+    color: ${C.primaryText};
+    font-weight: 600;
+  }
+
+  .period-note {
+    display: block;
+    margin-top: 6px;
+    font-size: 8.3pt;
+    color: ${C.mutedText};
+  }
+
   h1, h2, h3, h4 {
     margin: 0;
     break-after: avoid;
@@ -165,6 +201,55 @@ const CSS = `
     gap: ${S.sm}px;
   }
 
+  .peer-kpi-strip {
+    margin-top: ${S.sm}px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: ${S.sm}px;
+  }
+
+  .peer-kpi-col {
+    background: ${C.parchment};
+    color: ${C.primaryText};
+    border-radius: 12px;
+    padding: 12px 14px;
+    box-shadow: inset 0 0 0 1px rgba(30, 26, 23, 0.16);
+  }
+
+  .peer-kpi-col h3 {
+    color: ${C.primaryText};
+    font-family: ${F.title};
+    font-size: 12pt;
+    margin-bottom: 8px;
+  }
+
+  .peer-kpi-col h3 span {
+    font-family: ${F.body};
+    font-size: 9pt;
+    color: ${C.mutedText};
+  }
+
+  .peer-kpi-col ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .peer-kpi-col li {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+    color: ${C.secondaryText};
+  }
+
+  .peer-kpi-col li strong {
+    color: ${C.primaryText};
+    font-family: ${F.numeric};
+    font-weight: 700;
+  }
+
   .kpi-card {
     background: ${C.parchment};
     color: ${C.primaryText};
@@ -232,6 +317,7 @@ const CSS = `
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: ${S.sm}px;
+    align-items: stretch;
   }
 
   .exec-block {
@@ -239,7 +325,7 @@ const CSS = `
     border: 1px solid ${C.stoneBeige};
     border-radius: 10px;
     padding: ${S.sm}px;
-    min-height: 0;
+    min-height: 120px;
   }
 
   .executive-strip {
@@ -250,6 +336,18 @@ const CSS = `
     border-radius: 10px;
     background: ${C.parchment};
     padding: 10px;
+  }
+
+  .executive-scorecard {
+    border: 1px solid ${C.stoneBeige};
+    border-radius: 10px;
+    background: ${C.parchment};
+    padding: 10px 10px 2px;
+  }
+
+  .executive-scorecard h3 {
+    color: ${C.primaryText};
+    margin-bottom: 8px;
   }
 
   .mini-kpi {
@@ -349,9 +447,10 @@ const CSS = `
 
   .metrics-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 12px;
     align-content: start;
+    grid-auto-flow: row dense;
   }
 
   /* Dashboard / appendix tables */
@@ -414,7 +513,57 @@ const CSS = `
   }
 
   .table-group.tall {
-    grid-column: span 2;
+    grid-column: 1 / -1;
+  }
+
+  .derived-strip,
+  .method-notes {
+    border: 1px solid ${C.stoneBeige};
+    border-radius: 12px;
+    background: ${C.warmIvory};
+    padding: 12px;
+    grid-column: 1 / -1;
+  }
+
+  .derived-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .derived-card {
+    border: 1px solid ${C.stoneBeige};
+    border-radius: 10px;
+    background: ${C.parchment};
+    padding: 8px 10px;
+  }
+
+  .derived-card h4 {
+    margin: 0 0 5px 0;
+    color: ${C.mutedText};
+    font-size: 8.2pt;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .derived-card p {
+    margin: 0;
+    font-family: ${F.title};
+    font-size: 12pt;
+    color: ${C.primaryText};
+    line-height: 1.15;
+  }
+
+  .derived-card span {
+    display: block;
+    margin-top: 4px;
+    font-size: 7.8pt;
+    color: ${C.mutedText};
+  }
+
+  .method-notes h3 {
+    margin-bottom: 8px;
+    color: ${C.primaryText};
   }
 
   /* Commentary */
@@ -424,6 +573,7 @@ const CSS = `
     border-radius: 12px;
     padding: 14px 16px;
     margin-bottom: 12px;
+    min-height: 108px;
   }
 
   .commentary-block:nth-of-type(1) h3 { color: ${C.forestOlive}; }

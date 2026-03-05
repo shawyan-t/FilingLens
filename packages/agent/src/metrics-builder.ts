@@ -20,19 +20,26 @@ const METRIC_GROUPS: Array<{ title: string; metrics: string[] }> = [
   {
     title: 'Profitability',
     metrics: [
+      'Return on Equity',
+      'Return on Assets',
       'Operating Margin',
       'Net Margin',
       'Gross Margin',
-      'Return on Equity',
-      'Return on Assets',
-    ],
+      'Earnings Per Share (Diluted)',
+      'EBITDA',
+      ],
   },
   {
     title: 'Liquidity & Leverage',
     metrics: [
+      'Total Debt',
+      'Net Debt',
       'Current Ratio',
       'Quick Ratio',
+      'Cash Ratio',
       'Debt-to-Equity',
+      'Debt Maturity (Current %)',
+      'Equity Multiplier',
     ],
   },
   {
@@ -52,8 +59,14 @@ const METRIC_GROUPS: Array<{ title: string; metrics: string[] }> = [
       'Operating Cash Flow',
       'Free Cash Flow',
       'Capital Expenditures',
-      'Earnings Per Share (Diluted)',
+      'FCF Margin',
+      'CFO Margin',
+      'CFO / Net Income',
+      'CapEx / Revenue',
+      'ROIC Proxy',
+      'Asset Turnover',
       'Book Value Per Share',
+      'Working Capital',
     ],
   },
 ];
@@ -105,6 +118,7 @@ function buildSingleMetricsTable(
     rows.push('');
   }
   rows.push('The dashboard is grouped to surface headline signals first, then supporting detail.');
+  rows.push('*Per-share basis: EPS uses diluted weighted-average shares; BVPS uses period-end shares outstanding.*');
   rows.push('');
 
   const grouped = groupMetrics(tickerInsights.keyMetrics);
@@ -153,6 +167,7 @@ function buildComparisonMetricsTable(
 
   const rows: string[] = [];
   rows.push('Each company is shown at its own latest annual filing period; fiscal year-ends can differ across peers.');
+  rows.push('*Per-share basis: EPS uses diluted weighted-average shares; BVPS uses period-end shares outstanding.*');
   rows.push('');
   rows.push(`| Metric | ${tickers.join(' | ')} |`);
   rows.push(`|:---|${tickers.map(() => '---:').join('|')}|`);
@@ -201,7 +216,13 @@ function formatValue(value: number, unit: string): string {
 
 function formatUSDInBillions(value: number): string {
   const sign = value < 0 ? '-' : '';
-  const billions = Math.abs(value) / 1e9;
+  const abs = Math.abs(value);
+  const billions = abs / 1e9;
+  // Use $M below $1B to avoid over-rounding (e.g. 126M -> 0.13B drift).
+  if (abs < 1_000_000_000) {
+    const millions = abs / 1e6;
+    return `${sign}$${millions.toFixed(millions >= 10 ? 0 : 1)}M`;
+  }
   if (billions >= 100) return `${sign}$${billions.toFixed(0)}B`;
   if (billions >= 10) return `${sign}$${billions.toFixed(1)}B`;
   return `${sign}$${billions.toFixed(2)}B`;

@@ -13,6 +13,7 @@
 
 import type { AnalysisContext, TrendData, CompanyFacts } from '@dolph/shared';
 import { getMappingByName, formatCompactCurrency } from '@dolph/shared';
+import { buildCanonicalAnnualPeriodMap } from './report-facts.js';
 
 // ── Color palette ─────────────────────────────────────────────
 
@@ -44,32 +45,49 @@ export interface ChartSet {
   growthDurabilityChart: string | null;
 }
 
+export interface ChartPeriodLock {
+  current: string | null;
+  prior: string | null;
+}
+
 /**
  * Generate all applicable charts for a report.
  * Returns SVG strings ready to embed in HTML.
  */
 export function generateCharts(context: AnalysisContext): ChartSet {
+  return generateChartsWithLocks(context);
+}
+
+export function generateChartsWithLocks(
+  context: AnalysisContext,
+  periodLocks: Record<string, ChartPeriodLock> = {},
+): ChartSet {
   const ticker = context.tickers[0]!;
+  const primaryLock = periodLocks[ticker];
 
   return {
-    revenueMarginChart: buildRevenueMarginChart(context, ticker),
-    fcfBridgeChart: buildFCFBridgeChart(context, ticker),
+    revenueMarginChart: buildRevenueMarginChart(context, ticker, primaryLock),
+    fcfBridgeChart: buildFCFBridgeChart(context, ticker, primaryLock),
     peerScorecardChart: context.type === 'comparison'
-      ? buildPeerScorecardChart(context) : null,
+      ? buildPeerScorecardChart(context, periodLocks) : null,
     returnLeverageChart: context.type === 'comparison'
-      ? buildReturnLeverageChart(context) : null,
-    growthDurabilityChart: buildGrowthDurabilityChart(context, ticker),
+      ? buildReturnLeverageChart(context, periodLocks) : null,
+    growthDurabilityChart: buildGrowthDurabilityChart(context, ticker, primaryLock),
   };
 }
 
 // ── 1. Revenue + Margin Chart (Dual-Axis) ─────────────────────
 
-function buildRevenueMarginChart(context: AnalysisContext, ticker: string): string | null {
+function buildRevenueMarginChart(
+  context: AnalysisContext,
+  ticker: string,
+  periodLock?: ChartPeriodLock,
+): string | null {
   const trends = context.trends[ticker] || [];
   const revenueTrend = trends.find(t => t.metric === 'revenue');
   if (!revenueTrend || revenueTrend.values.length < 2) return null;
 
-  const periods = selectAnnualChartValues(revenueTrend.values, 5);
+  const periods = selectAnnualChartValues(revenueTrend.values, 5, periodLock?.current ?? null);
   const n = periods.length;
   if (n < 2) return null;
 
@@ -134,14 +152,14 @@ function buildRevenueMarginChart(context: AnalysisContext, ticker: string): stri
     const y = pad.top + (plotH * i / yTicks);
     const value = revCeil * (1 - i / yTicks);
     parts.push(`<line x1="${pad.left}" y1="${y}" x2="${pad.left + plotW}" y2="${y}" stroke="${COLORS.gridLine}" stroke-width="0.5"/>`);
-    parts.push(`<text x="${pad.left - 8}" y="${y + 3}" text-anchor="end" font-family="Source Sans 3, Inter, Arial, sans-serif" font-size="9" fill="${COLORS.gray}">${formatAxisValue(value)}</text>`);
+    parts.push(`<text x="${pad.left - 8}" y="${y + 3}" text-anchor="end" font-family="Times New Roman, Times, serif" font-size="9" fill="${COLORS.gray}">${formatAxisValue(value)}</text>`);
   }
 
   // Right Y-axis labels (Margin %)
   for (let i = 0; i <= yTicks; i++) {
     const y = pad.top + (plotH * i / yTicks);
     const pct = marginCeil * (1 - i / yTicks);
-    parts.push(`<text x="${pad.left + plotW + 8}" y="${y + 3}" text-anchor="start" font-family="Source Sans 3, Inter, Arial, sans-serif" font-size="9" fill="${COLORS.gray}">${pct.toFixed(0)}%</text>`);
+    parts.push(`<text x="${pad.left + plotW + 8}" y="${y + 3}" text-anchor="start" font-family="Times New Roman, Times, serif" font-size="9" fill="${COLORS.gray}">${pct.toFixed(0)}%</text>`);
   }
 
   // Revenue bars
@@ -155,7 +173,7 @@ function buildRevenueMarginChart(context: AnalysisContext, ticker: string): stri
   // X-axis labels
   for (let i = 0; i < n; i++) {
     const x = pad.left + i * barSpacing + barSpacing / 2;
-    parts.push(`<text x="${x}" y="${pad.top + plotH + 16}" text-anchor="middle" font-family="Source Sans 3, Inter, Arial, sans-serif" font-size="9" fill="${COLORS.gray}">${escSvg(formatPeriodShort(periods[i]!.period))}</text>`);
+    parts.push(`<text x="${x}" y="${pad.top + plotH + 16}" text-anchor="middle" font-family="Times New Roman, Times, serif" font-size="9" fill="${COLORS.gray}">${escSvg(formatPeriodShort(periods[i]!.period))}</text>`);
   }
 
   // Margin overlay lines
@@ -190,21 +208,33 @@ function buildRevenueMarginChart(context: AnalysisContext, ticker: string): stri
 
 // ── 2. FCF Bridge Waterfall ───────────────────────────────────
 
-function getFactValue(facts: CompanyFacts, metric: string): number | null {
+function getFactValue(
+  facts: CompanyFacts,
+  metric: string,
+  lockedPeriod: string | null = null,
+): number | null {
   const fact = facts.facts.find(f => f.metric === metric);
   if (!fact || fact.periods.length === 0) return null;
   const annualForms = new Set(['10-K', '20-F', '40-F']);
+  if (lockedPeriod) {
+    const exact = fact.periods.find(p => annualForms.has(p.form) && p.period === lockedPeriod);
+    if (exact) return exact.value;
+  }
   const annual = fact.periods.find(p => annualForms.has(p.form));
   return annual?.value ?? fact.periods[0]?.value ?? null;
 }
 
-function buildFCFBridgeChart(context: AnalysisContext, ticker: string): string | null {
+function buildFCFBridgeChart(
+  context: AnalysisContext,
+  ticker: string,
+  periodLock?: ChartPeriodLock,
+): string | null {
   const facts = context.facts[ticker];
   if (!facts) return null;
 
-  const netIncome = getFactValue(facts, 'net_income');
-  const ocf = getFactValue(facts, 'operating_cash_flow');
-  const capex = getFactValue(facts, 'capex');
+  const netIncome = getFactValue(facts, 'net_income', periodLock?.current ?? null);
+  const ocf = getFactValue(facts, 'operating_cash_flow', periodLock?.current ?? null);
+  const capex = getFactValue(facts, 'capex', periodLock?.current ?? null);
 
   if (netIncome === null || ocf === null) return null;
 
@@ -266,7 +296,7 @@ function buildFCFBridgeChart(context: AnalysisContext, ticker: string): string |
   for (let v = Math.ceil(yFloor / gridStep) * gridStep; v <= yCeil; v += gridStep) {
     const y = valToY(v);
     parts.push(`<line x1="${pad.left}" y1="${y.toFixed(1)}" x2="${pad.left + plotW}" y2="${y.toFixed(1)}" stroke="${COLORS.gridLine}" stroke-width="0.5"/>`);
-    parts.push(`<text x="${pad.left - 8}" y="${(y + 3).toFixed(1)}" text-anchor="end" font-family="Source Sans 3, Inter, Arial, sans-serif" font-size="9" fill="${COLORS.gray}">${formatAxisValue(v)}</text>`);
+    parts.push(`<text x="${pad.left - 8}" y="${(y + 3).toFixed(1)}" text-anchor="end" font-family="Times New Roman, Times, serif" font-size="9" fill="${COLORS.gray}">${formatAxisValue(v)}</text>`);
   }
 
   // Zero line
@@ -314,10 +344,10 @@ function buildFCFBridgeChart(context: AnalysisContext, ticker: string): string |
 
     // Value label
     const labelY = item.value >= 0 ? barTop - 5 : barBottom + 12;
-    parts.push(`<text x="${cx.toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="middle" font-family="Source Sans 3, Inter, Arial, sans-serif" font-size="9" font-weight="600" fill="${color}">${formatAxisValue(item.value)}</text>`);
+    parts.push(`<text x="${cx.toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="middle" font-family="Times New Roman, Times, serif" font-size="9" font-weight="600" fill="${color}">${formatAxisValue(item.value)}</text>`);
 
     // X-axis label
-    parts.push(`<text x="${cx.toFixed(1)}" y="${pad.top + plotH + 16}" text-anchor="middle" font-family="Source Sans 3, Inter, Arial, sans-serif" font-size="9" fill="${COLORS.gray}">${escSvg(item.label)}</text>`);
+    parts.push(`<text x="${cx.toFixed(1)}" y="${pad.top + plotH + 16}" text-anchor="middle" font-family="Times New Roman, Times, serif" font-size="9" fill="${COLORS.gray}">${escSvg(item.label)}</text>`);
 
     prevBarEndY = valToY(running);
   }
@@ -328,12 +358,22 @@ function buildFCFBridgeChart(context: AnalysisContext, ticker: string): string |
 
 // ── 3. Peer Normalized Scorecard ──────────────────────────────
 
-function buildPeerScorecardChart(context: AnalysisContext): string | null {
-  if (!context.comparison || context.tickers.length < 2) return null;
-
+function buildPeerScorecardChart(
+  context: AnalysisContext,
+  periodLocks: Record<string, ChartPeriodLock> = {},
+): string | null {
+  if (context.tickers.length < 2) return null;
   const tickers = context.tickers;
-  const metrics = context.comparison.metrics.slice(0, 8);
-  if (metrics.length === 0) return null;
+  const metricDefs: Array<{ key: string; label: string }> = [
+    { key: 'revenue', label: 'Revenue' },
+    { key: 'net_income', label: 'Net Income' },
+    { key: 'operating_income', label: 'Operating Income' },
+    { key: 'gross_profit', label: 'Gross Profit' },
+    { key: 'operating_cash_flow', label: 'Operating Cash Flow' },
+    { key: 'total_assets', label: 'Total Assets' },
+    { key: 'stockholders_equity', label: "Stockholders' Equity" },
+    { key: 'total_debt', label: 'Total Debt' },
+  ];
 
   interface ZScoreRow {
     label: string;
@@ -342,11 +382,25 @@ function buildPeerScorecardChart(context: AnalysisContext): string | null {
 
   const rows: ZScoreRow[] = [];
 
-  for (const m of metrics) {
+  const canonicalByTicker = new Map<string, Map<string, Record<string, number>>>();
+  for (const ticker of tickers) {
+    canonicalByTicker.set(ticker, buildCanonicalAnnualPeriodMap(context, ticker));
+  }
+
+  for (const def of metricDefs) {
     const vals: number[] = [];
+    const byTicker: Record<string, number> = {};
     for (const t of tickers) {
-      const v = m.values[t];
-      if (v !== null && v !== undefined) vals.push(v);
+      const lock = periodLocks[t]?.current ?? null;
+      const canonical = canonicalByTicker.get(t);
+      if (!canonical) continue;
+      const orderedPeriods = Array.from(canonical.keys()).sort((a, b) => b.localeCompare(a));
+      const chosenPeriod = lock && canonical.has(lock) ? lock : orderedPeriods[0];
+      if (!chosenPeriod) continue;
+      const value = canonical.get(chosenPeriod)?.[def.key];
+      if (value === undefined || value === null || !isFinite(value)) continue;
+      byTicker[t] = value;
+      vals.push(value);
     }
     if (vals.length < 2) continue;
 
@@ -355,14 +409,14 @@ function buildPeerScorecardChart(context: AnalysisContext): string | null {
 
     const scores: Record<string, number> = {};
     for (const t of tickers) {
-      const v = m.values[t];
-      if (v === null || v === undefined) continue;
+      const v = byTicker[t];
+      if (v === null || v === undefined || !isFinite(v)) continue;
       scores[t] = stddev > 0 ? Math.max(-2.5, Math.min(2.5, (v - mean) / stddev)) : 0;
     }
 
-    const mapping = getMappingByName(m.metric);
+    const mapping = getMappingByName(def.key);
     rows.push({
-      label: mapping?.displayName || m.metric.replace(/_/g, ' '),
+      label: mapping?.displayName || def.label,
       scores,
     });
   }
@@ -393,7 +447,7 @@ function buildPeerScorecardChart(context: AnalysisContext): string | null {
     const isCenter = z === 0;
     parts.push(`<line x1="${x.toFixed(1)}" y1="${pad.top}" x2="${x.toFixed(1)}" y2="${pad.top + plotH}" stroke="${isCenter ? COLORS.gray : COLORS.gridLine}" stroke-width="${isCenter ? 1 : 0.5}"${isCenter ? ' stroke-dasharray="4,3"' : ''}/>`);
     const sigmaLabel = z > 0 ? `+${z}` : `${z}`;
-    parts.push(`<text x="${x.toFixed(1)}" y="${pad.top + plotH + 14}" text-anchor="middle" font-family="Source Sans 3, Inter, Arial, sans-serif" font-size="9" fill="${COLORS.gray}">${sigmaLabel}&#963;</text>`);
+    parts.push(`<text x="${x.toFixed(1)}" y="${pad.top + plotH + 14}" text-anchor="middle" font-family="Times New Roman, Times, serif" font-size="9" fill="${COLORS.gray}">${sigmaLabel}&#963;</text>`);
   }
 
   // Rows
@@ -403,7 +457,7 @@ function buildPeerScorecardChart(context: AnalysisContext): string | null {
 
     // Metric label
     const displayLabel = row.label.length > 20 ? row.label.slice(0, 20) + '...' : row.label;
-    parts.push(`<text x="${pad.left - 8}" y="${rowCenterY + 4}" text-anchor="end" font-family="Source Sans 3, Inter, Arial, sans-serif" font-size="9" fill="${COLORS.gray}">${escSvg(displayLabel)}</text>`);
+    parts.push(`<text x="${pad.left - 8}" y="${rowCenterY + 4}" text-anchor="end" font-family="Times New Roman, Times, serif" font-size="9" fill="${COLORS.gray}">${escSvg(displayLabel)}</text>`);
 
     // Row separator
     if (r > 0) {
@@ -441,7 +495,10 @@ function buildPeerScorecardChart(context: AnalysisContext): string | null {
 
 // ── 4. Return vs Leverage Quadrant ────────────────────────────
 
-function buildReturnLeverageChart(context: AnalysisContext): string | null {
+function buildReturnLeverageChart(
+  context: AnalysisContext,
+  periodLocks: Record<string, ChartPeriodLock> = {},
+): string | null {
   if (context.tickers.length < 2) return null;
 
   interface DataPoint { ticker: string; roe: number; de: number }
@@ -449,8 +506,13 @@ function buildReturnLeverageChart(context: AnalysisContext): string | null {
 
   for (const t of context.tickers) {
     const ratios = context.ratios[t] || [];
-    const roe = ratios.find(r => r.name === 'roe');
-    const de = ratios.find(r => r.name === 'de');
+    const lock = periodLocks[t]?.current ?? null;
+    const roe = lock
+      ? ratios.find(r => r.name === 'roe' && r.period === lock) || ratios.find(r => r.name === 'roe')
+      : ratios.find(r => r.name === 'roe');
+    const de = lock
+      ? ratios.find(r => r.name === 'de' && r.period === lock) || ratios.find(r => r.name === 'de')
+      : ratios.find(r => r.name === 'de');
     if (roe && de) {
       points.push({ ticker: t, roe: roe.value * 100, de: de.value });
     }
@@ -486,18 +548,18 @@ function buildReturnLeverageChart(context: AnalysisContext): string | null {
   for (let v = Math.ceil(deMin / deStep) * deStep; v <= deMax; v += deStep) {
     const x = xToPlot(v);
     parts.push(`<line x1="${x.toFixed(1)}" y1="${pad.top}" x2="${x.toFixed(1)}" y2="${pad.top + plotH}" stroke="${COLORS.gridLine}" stroke-width="0.5"/>`);
-    parts.push(`<text x="${x.toFixed(1)}" y="${pad.top + plotH + 14}" text-anchor="middle" font-family="Source Sans 3, Inter, Arial, sans-serif" font-size="9" fill="${COLORS.gray}">${v.toFixed(1)}x</text>`);
+    parts.push(`<text x="${x.toFixed(1)}" y="${pad.top + plotH + 14}" text-anchor="middle" font-family="Times New Roman, Times, serif" font-size="9" fill="${COLORS.gray}">${v.toFixed(1)}x</text>`);
   }
-  parts.push(`<text x="${pad.left + plotW / 2}" y="${pad.top + plotH + 30}" text-anchor="middle" font-family="Source Sans 3, Inter, Arial, sans-serif" font-size="9" fill="${COLORS.gray}">D/E Ratio</text>`);
+  parts.push(`<text x="${pad.left + plotW / 2}" y="${pad.top + plotH + 30}" text-anchor="middle" font-family="Times New Roman, Times, serif" font-size="9" fill="${COLORS.gray}">D/E Ratio</text>`);
 
   // Y-axis grid (ROE)
   const roeStep = niceStep(roeMax - roeMin, 5);
   for (let v = Math.ceil(roeMin / roeStep) * roeStep; v <= roeMax; v += roeStep) {
     const y = yToPlot(v);
     parts.push(`<line x1="${pad.left}" y1="${y.toFixed(1)}" x2="${pad.left + plotW}" y2="${y.toFixed(1)}" stroke="${COLORS.gridLine}" stroke-width="0.5"/>`);
-    parts.push(`<text x="${pad.left - 8}" y="${(y + 3).toFixed(1)}" text-anchor="end" font-family="Source Sans 3, Inter, Arial, sans-serif" font-size="9" fill="${COLORS.gray}">${v.toFixed(0)}%</text>`);
+    parts.push(`<text x="${pad.left - 8}" y="${(y + 3).toFixed(1)}" text-anchor="end" font-family="Times New Roman, Times, serif" font-size="9" fill="${COLORS.gray}">${v.toFixed(0)}%</text>`);
   }
-  parts.push(`<text x="14" y="${pad.top + plotH / 2}" text-anchor="middle" font-family="Source Sans 3, Inter, Arial, sans-serif" font-size="9" fill="${COLORS.gray}" transform="rotate(-90 14 ${pad.top + plotH / 2})">ROE (%)</text>`);
+  parts.push(`<text x="14" y="${pad.top + plotH / 2}" text-anchor="middle" font-family="Times New Roman, Times, serif" font-size="9" fill="${COLORS.gray}" transform="rotate(-90 14 ${pad.top + plotH / 2})">ROE (%)</text>`);
 
   // Median lines (dashed) creating quadrants
   const medX = xToPlot(medDE);
@@ -508,10 +570,10 @@ function buildReturnLeverageChart(context: AnalysisContext): string | null {
   // Quadrant labels
   const qs = 7;
   const qp = 6;
-  parts.push(`<text x="${pad.left + qp}" y="${pad.top + qp + qs}" font-family="Source Sans 3, Inter, Arial, sans-serif" font-size="${qs}" fill="${COLORS.accent}" opacity="0.6">High Return / Low Leverage</text>`);
-  parts.push(`<text x="${pad.left + plotW - qp}" y="${pad.top + qp + qs}" text-anchor="end" font-family="Source Sans 3, Inter, Arial, sans-serif" font-size="${qs}" fill="${COLORS.warning}" opacity="0.6">High Return / High Leverage</text>`);
-  parts.push(`<text x="${pad.left + qp}" y="${pad.top + plotH - qp}" font-family="Source Sans 3, Inter, Arial, sans-serif" font-size="${qs}" fill="${COLORS.gray}" opacity="0.6">Low Return / Low Leverage</text>`);
-  parts.push(`<text x="${pad.left + plotW - qp}" y="${pad.top + plotH - qp}" text-anchor="end" font-family="Source Sans 3, Inter, Arial, sans-serif" font-size="${qs}" fill="${COLORS.danger}" opacity="0.6">Low Return / High Leverage</text>`);
+  parts.push(`<text x="${pad.left + qp}" y="${pad.top + qp + qs}" font-family="Times New Roman, Times, serif" font-size="${qs}" fill="${COLORS.accent}" opacity="0.6">High Return / Low Leverage</text>`);
+  parts.push(`<text x="${pad.left + plotW - qp}" y="${pad.top + qp + qs}" text-anchor="end" font-family="Times New Roman, Times, serif" font-size="${qs}" fill="${COLORS.warning}" opacity="0.6">High Return / High Leverage</text>`);
+  parts.push(`<text x="${pad.left + qp}" y="${pad.top + plotH - qp}" font-family="Times New Roman, Times, serif" font-size="${qs}" fill="${COLORS.gray}" opacity="0.6">Low Return / Low Leverage</text>`);
+  parts.push(`<text x="${pad.left + plotW - qp}" y="${pad.top + plotH - qp}" text-anchor="end" font-family="Times New Roman, Times, serif" font-size="${qs}" fill="${COLORS.danger}" opacity="0.6">Low Return / High Leverage</text>`);
 
   // Data points
   for (let i = 0; i < points.length; i++) {
@@ -521,7 +583,7 @@ function buildReturnLeverageChart(context: AnalysisContext): string | null {
     const color = CHART_COLORS[i % CHART_COLORS.length]!;
 
     parts.push(`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="6" fill="${color}" stroke="${COLORS.background}" stroke-width="2" opacity="0.9"/>`);
-    parts.push(`<text x="${(cx + 10).toFixed(1)}" y="${(cy + 4).toFixed(1)}" font-family="Source Sans 3, Inter, Arial, sans-serif" font-size="9" font-weight="600" fill="${color}">${escSvg(p.ticker)}</text>`);
+    parts.push(`<text x="${(cx + 10).toFixed(1)}" y="${(cy + 4).toFixed(1)}" font-family="Times New Roman, Times, serif" font-size="9" font-weight="600" fill="${color}">${escSvg(p.ticker)}</text>`);
   }
 
   parts.push('</svg>');
@@ -530,12 +592,16 @@ function buildReturnLeverageChart(context: AnalysisContext): string | null {
 
 // ── 5. Growth Durability ──────────────────────────────────────
 
-function buildGrowthDurabilityChart(context: AnalysisContext, ticker: string): string | null {
+function buildGrowthDurabilityChart(
+  context: AnalysisContext,
+  ticker: string,
+  periodLock?: ChartPeriodLock,
+): string | null {
   const trends = context.trends[ticker] || [];
   const revenueTrend = trends.find(t => t.metric === 'revenue');
   if (!revenueTrend || revenueTrend.values.length < 3) return null;
 
-  const periods = selectAnnualChartValues(revenueTrend.values, 6);
+  const periods = selectAnnualChartValues(revenueTrend.values, 6, periodLock?.current ?? null);
   if (periods.length < 3) return null;
 
   const growthPeriods: Array<{ period: string; growth: number }> = [];
@@ -602,7 +668,7 @@ function buildGrowthDurabilityChart(context: AnalysisContext, ticker: string): s
   for (let v = Math.ceil(yFloor / yStep) * yStep; v <= yCeil; v += yStep) {
     const y = valToY(v);
     parts.push(`<line x1="${pad.left}" y1="${y.toFixed(1)}" x2="${pad.left + plotW}" y2="${y.toFixed(1)}" stroke="${COLORS.gridLine}" stroke-width="0.5"/>`);
-    parts.push(`<text x="${pad.left - 8}" y="${(y + 3).toFixed(1)}" text-anchor="end" font-family="Source Sans 3, Inter, Arial, sans-serif" font-size="9" fill="${COLORS.gray}">${v.toFixed(0)}%</text>`);
+    parts.push(`<text x="${pad.left - 8}" y="${(y + 3).toFixed(1)}" text-anchor="end" font-family="Times New Roman, Times, serif" font-size="9" fill="${COLORS.gray}">${v.toFixed(0)}%</text>`);
   }
 
   // Zero line
@@ -634,10 +700,10 @@ function buildGrowthDurabilityChart(context: AnalysisContext, ticker: string): s
 
     // Value label
     const labelY = g >= 0 ? barTop - 4 : barBot + 12;
-    parts.push(`<text x="${cx.toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="middle" font-family="Source Sans 3, Inter, Arial, sans-serif" font-size="9" font-weight="600" fill="${color}">${g.toFixed(1)}%</text>`);
+    parts.push(`<text x="${cx.toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="middle" font-family="Times New Roman, Times, serif" font-size="9" font-weight="600" fill="${color}">${g.toFixed(1)}%</text>`);
 
     // X-axis label
-    parts.push(`<text x="${cx.toFixed(1)}" y="${pad.top + plotH + 16}" text-anchor="middle" font-family="Source Sans 3, Inter, Arial, sans-serif" font-size="9" fill="${COLORS.gray}">${escSvg(formatPeriodShort(normalizedGrowth[i]!.period))}</text>`);
+    parts.push(`<text x="${cx.toFixed(1)}" y="${pad.top + plotH + 16}" text-anchor="middle" font-family="Times New Roman, Times, serif" font-size="9" fill="${COLORS.gray}">${escSvg(formatPeriodShort(normalizedGrowth[i]!.period))}</text>`);
   }
 
   // 3Y CAGR overlay line
@@ -695,11 +761,14 @@ function normalizeGrowthSeries(
 function selectAnnualChartValues(
   values: TrendData['values'],
   maxPoints: number,
+  lockCurrent: string | null = null,
 ): TrendData['values'] {
   // Keep a single representative period per fiscal year to avoid mixed
   // year-start/year-end artifacts in chart labels and growth math.
   const byYear = new Map<number, TrendData['values'][number]>();
-  const sorted = [...values].sort((a, b) => a.period.localeCompare(b.period));
+  const sorted = [...values]
+    .filter(v => !lockCurrent || v.period.localeCompare(lockCurrent) <= 0)
+    .sort((a, b) => a.period.localeCompare(b.period));
   for (const v of sorted) {
     const date = new Date(v.period);
     if (isNaN(date.getTime())) continue;
@@ -739,7 +808,7 @@ function svgBg(w: number, h: number): string {
 }
 
 function svgTitle(text: string, w: number): string {
-  return `<text x="${w / 2}" y="20" text-anchor="middle" font-family="Source Sans 3, Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="${COLORS.primary}">${text}</text>`;
+  return `<text x="${w / 2}" y="20" text-anchor="middle" font-family="Times New Roman, Times, serif" font-size="14" font-weight="700" fill="${COLORS.primary}">${text}</text>`;
 }
 
 /** Round up to a "nice" axis maximum */
@@ -786,7 +855,7 @@ function buildLegend(items: LegendItem[], startX: number, y: number): string {
     } else {
       parts.push(`<rect x="${x}" y="${y - 6}" width="12" height="8" rx="1.5" fill="${item.color}" opacity="0.75"/>`);
     }
-    parts.push(`<text x="${x + 16}" y="${y}" font-family="Source Sans 3, Inter, Arial, sans-serif" font-size="9.2" fill="${COLORS.gray}">${escSvg(item.label)}</text>`);
+    parts.push(`<text x="${x + 16}" y="${y}" font-family="Times New Roman, Times, serif" font-size="9.2" fill="${COLORS.gray}">${escSvg(item.label)}</text>`);
     x += 18 + item.label.length * 5.6 + 16;
   }
   return parts.join('\n');

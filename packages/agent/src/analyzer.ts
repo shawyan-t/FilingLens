@@ -5,6 +5,7 @@
 
 import type { AnalysisContext, CompanyFacts, Ratio, TrendData } from '@dolph/shared';
 import { getMappingByName } from '@dolph/shared';
+import { buildCanonicalAnnualPeriodMap } from './report-facts.js';
 
 type FlagSeverity = 'high' | 'medium' | 'low';
 
@@ -93,6 +94,13 @@ const LEDGER_DEFINITIONS: MetricDefinition[] = [
     compute: v => finiteOrNull(v['total_liabilities']),
   },
   {
+    key: 'total_debt',
+    displayName: 'Total Debt',
+    unit: 'USD',
+    dependencies: ['total_debt', 'long_term_debt', 'short_term_debt'],
+    compute: v => resolveDebt(v),
+  },
+  {
     key: 'stockholders_equity',
     displayName: "Stockholders' Equity",
     unit: 'USD',
@@ -146,6 +154,113 @@ const LEDGER_DEFINITIONS: MetricDefinition[] = [
       return ocf - Math.abs(capex);
     },
     ratioFallback: 'fcf',
+  },
+  {
+    key: 'working_capital',
+    displayName: 'Working Capital',
+    unit: 'USD',
+    dependencies: ['current_assets', 'current_liabilities'],
+    compute: v => {
+      const currentAssets = finiteOrNull(v['current_assets']);
+      const currentLiabilities = finiteOrNull(v['current_liabilities']);
+      if (currentAssets === null || currentLiabilities === null) return null;
+      return currentAssets - currentLiabilities;
+    },
+  },
+  {
+    key: 'cash_ratio',
+    displayName: 'Cash Ratio',
+    unit: 'x',
+    dependencies: ['cash_and_equivalents', 'current_liabilities'],
+    compute: v => safeDivide(v['cash_and_equivalents'], v['current_liabilities']),
+  },
+  {
+    key: 'net_debt',
+    displayName: 'Net Debt',
+    unit: 'USD',
+    dependencies: ['cash_and_equivalents', 'total_debt', 'long_term_debt', 'short_term_debt'],
+    compute: v => {
+      const debt = resolveDebt(v);
+      const cash = finiteOrNull(v['cash_and_equivalents']);
+      if (debt === null || cash === null) return null;
+      return debt - cash;
+    },
+  },
+  {
+    key: 'fcf_margin',
+    displayName: 'FCF Margin',
+    unit: '%',
+    dependencies: ['operating_cash_flow', 'capex', 'revenue'],
+    compute: v => {
+      const fcf = finiteOrNull(v['operating_cash_flow']) !== null && finiteOrNull(v['capex']) !== null
+        ? ((v['operating_cash_flow'] || 0) - Math.abs(v['capex'] || 0))
+        : null;
+      if (fcf === null) return null;
+      return safeDivide(fcf, v['revenue']);
+    },
+  },
+  {
+    key: 'cfo_margin',
+    displayName: 'CFO Margin',
+    unit: '%',
+    dependencies: ['operating_cash_flow', 'revenue'],
+    compute: v => safeDivide(v['operating_cash_flow'], v['revenue']),
+  },
+  {
+    key: 'cfo_to_net_income',
+    displayName: 'CFO / Net Income',
+    unit: 'x',
+    dependencies: ['operating_cash_flow', 'net_income'],
+    compute: v => safeDivide(v['operating_cash_flow'], v['net_income']),
+  },
+  {
+    key: 'capex_to_revenue',
+    displayName: 'CapEx / Revenue',
+    unit: '%',
+    dependencies: ['capex', 'revenue'],
+    compute: v => {
+      const capex = finiteOrNull(v['capex']);
+      const revenue = finiteOrNull(v['revenue']);
+      if (capex === null || revenue === null || revenue === 0) return null;
+      return Math.abs(capex) / revenue;
+    },
+  },
+  {
+    key: 'debt_maturity_current_pct',
+    displayName: 'Debt Maturity (Current %)',
+    unit: '%',
+    dependencies: ['short_term_debt', 'total_debt', 'long_term_debt'],
+    compute: v => {
+      const debt = resolveDebt(v);
+      const shortDebt = finiteOrNull(v['short_term_debt']);
+      if (debt === null || shortDebt === null || debt === 0) return null;
+      return shortDebt / debt;
+    },
+  },
+  {
+    key: 'ebitda',
+    displayName: 'EBITDA',
+    unit: 'USD',
+    dependencies: ['operating_income', 'depreciation_and_amortization'],
+    compute: v => {
+      const op = finiteOrNull(v['operating_income']);
+      const da = finiteOrNull(v['depreciation_and_amortization']);
+      if (op === null || da === null) return null;
+      return op + Math.abs(da);
+    },
+  },
+  {
+    key: 'roic_proxy',
+    displayName: 'ROIC Proxy',
+    unit: '%',
+    dependencies: ['operating_income', 'stockholders_equity', 'total_debt', 'long_term_debt', 'short_term_debt'],
+    compute: v => {
+      const opIncome = finiteOrNull(v['operating_income']);
+      const equity = finiteOrNull(v['stockholders_equity']);
+      const debt = resolveDebt(v);
+      if (opIncome === null || equity === null || debt === null || equity + debt === 0) return null;
+      return opIncome / (equity + debt);
+    },
   },
   {
     key: 'gross_margin',
@@ -290,45 +405,10 @@ function buildAnnualPeriodMap(
   ticker: string,
 ): Map<string, PeriodBucket> {
   const periodMap = new Map<string, PeriodBucket>();
-
-  const ensureBucket = (period: string): PeriodBucket => {
-    let bucket = periodMap.get(period);
-    if (!bucket) {
-      bucket = { values: {} };
-      periodMap.set(period, bucket);
-    }
-    return bucket;
-  };
-
-  // 1) Structured statements (highest confidence for section coherence)
-  for (const statement of context.statements[ticker] || []) {
-    if (statement.period_type !== 'annual') continue;
-    for (const p of statement.periods) {
-      const bucket = ensureBucket(p.period);
-      for (const [metric, value] of Object.entries(p.data)) {
-        if (!isFinite(value)) continue;
-        if (bucket.values[metric] === undefined) {
-          bucket.values[metric] = value;
-        }
-      }
-    }
+  const canonical = buildCanonicalAnnualPeriodMap(context, ticker);
+  for (const [period, values] of canonical) {
+    periodMap.set(period, { values: { ...values } });
   }
-
-  // 2) Raw annual company facts as deterministic fallback
-  const facts = context.facts[ticker];
-  if (facts) {
-    for (const fact of facts.facts) {
-      for (const p of fact.periods) {
-        if (!ANNUAL_FORMS.has(p.form)) continue;
-        if (!isFinite(p.value)) continue;
-        const bucket = ensureBucket(p.period);
-        if (bucket.values[fact.metric] === undefined) {
-          bucket.values[fact.metric] = p.value;
-        }
-      }
-    }
-  }
-
   return periodMap;
 }
 
@@ -419,6 +499,46 @@ function computeLedgerMetrics(
       change: computeChange(current, prior),
     });
   }
+
+  // Average-based efficiency metrics anchored to the same locked periods.
+  const currentRevenue = finiteOrNull(snapshotValues['revenue']);
+  const priorRevenue = finiteOrNull(priorValues['revenue']);
+  const currentAssets = finiteOrNull(snapshotValues['total_assets']);
+  const priorAssets = finiteOrNull(priorValues['total_assets']);
+  const currentEquity = finiteOrNull(snapshotValues['stockholders_equity']);
+  const priorEquity = finiteOrNull(priorValues['stockholders_equity']);
+
+  const avgAssetsCurrent = average(currentAssets, priorAssets);
+  const avgEquityCurrent = average(currentEquity, priorEquity);
+
+  const assetTurnoverCurrent = currentRevenue !== null
+    ? safeDivide(currentRevenue, avgAssetsCurrent ?? currentAssets ?? undefined)
+    : null;
+  const assetTurnoverPrior = priorRevenue !== null
+    ? safeDivide(priorRevenue, priorAssets ?? undefined)
+    : null;
+  metrics.push({
+    key: 'asset_turnover',
+    displayName: 'Asset Turnover',
+    unit: 'x',
+    current: assetTurnoverCurrent,
+    prior: assetTurnoverPrior,
+    change: computeChange(assetTurnoverCurrent, assetTurnoverPrior),
+  });
+
+  const equityMultiplierCurrent = safeDivide(
+    avgAssetsCurrent ?? currentAssets ?? undefined,
+    avgEquityCurrent ?? currentEquity ?? undefined,
+  );
+  const equityMultiplierPrior = safeDivide(priorAssets ?? undefined, priorEquity ?? undefined);
+  metrics.push({
+    key: 'equity_multiplier',
+    displayName: 'Equity Multiplier',
+    unit: 'x',
+    current: equityMultiplierCurrent,
+    prior: equityMultiplierPrior,
+    change: computeChange(equityMultiplierCurrent, equityMultiplierPrior),
+  });
 
   return { metrics };
 }
@@ -695,6 +815,12 @@ function computeChange(current: number | null, prior: number | null): number | n
     return null;
   }
   return current / prior - 1;
+}
+
+function average(a: number | null, b: number | null): number | null {
+  if (a === null && b === null) return null;
+  if (a !== null && b !== null) return (a + b) / 2;
+  return a ?? b;
 }
 
 function dedupeFlags(flags: AnalysisInsights['redFlags']): AnalysisInsights['redFlags'] {
