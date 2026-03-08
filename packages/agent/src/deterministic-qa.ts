@@ -1,17 +1,30 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import type { AnalysisContext, Report } from '@dolph/shared';
+import type {
+  AnalysisContext,
+  AnalysisType,
+  Report,
+  ReportSection,
+} from '@dolph/shared';
+import {
+  REQUIRED_COMPARISON_SECTIONS,
+  REQUIRED_SINGLE_SECTIONS,
+} from '@dolph/shared';
 import type { AnalysisInsights } from './analyzer.js';
 import { normalizeMissingDataMarkdown, parseMetricRows } from './pdf-render-rules.js';
 import {
   buildCanonicalAnnualPeriodMap,
+  buildCanonicalAnnualSourceMap,
+  hasCashPresentationAlternative,
   corporateActionEvidence,
   SHARE_CHANGE_ALERT_THRESHOLD,
   shareBasisDivergence,
+  type CanonicalFactSource,
 } from './report-facts.js';
 import { requireCanonicalReportPackage, type CanonicalReportPackage } from './canonical-report-package.js';
 
 type GateId =
+  | 'report.section_contract'
   | 'data.cross_section_equality'
   | 'data.period_coherence'
   | 'data.sanity'
@@ -112,6 +125,9 @@ export function runDeterministicQAGates(
     runComparisonReportCrossSectionGates(report, context, insights, failures);
   }
 
+  runSectionContractGates(report, failures);
+  runPackageContractGates(pkg, failures);
+  runCashFamilyPresentationGates(pkg, failures);
   runNarrativeGates(report, context, insights, failures);
 
   return {
@@ -121,6 +137,155 @@ export function runDeterministicQAGates(
     mappingFixes,
     recomputedMetrics,
   };
+}
+
+function runSectionContractGates(
+  report: Report,
+  failures: QAFailure[],
+): void {
+  const requiredSections = requiredSectionIds(report.type);
+  const sectionMap = new Map(report.sections.map(section => [section.id, section]));
+
+  for (const id of requiredSections) {
+    const section = sectionMap.get(id);
+    if (!section) {
+      failures.push({
+        gate: 'report.section_contract',
+        source: id,
+        message: `Missing required section: ${id}.`,
+      });
+      continue;
+    }
+    if (section.content.trim().length < 20) {
+      failures.push({
+        gate: 'report.section_contract',
+        source: id,
+        message: `Required section "${id}" has insufficient content.`,
+      });
+    }
+  }
+
+  const keyMetrics = sectionMap.get('key_metrics');
+  if (keyMetrics && !hasValidMarkdownTable(keyMetrics)) {
+    failures.push({
+      gate: 'report.section_contract',
+      source: 'key_metrics',
+      message: 'Key metrics section is missing a valid markdown table.',
+    });
+  }
+
+  const statements = sectionMap.get('financial_statements');
+  if (statements && !hasValidMarkdownTable(statements)) {
+    failures.push({
+      gate: 'report.section_contract',
+      source: 'financial_statements',
+      message: 'Financial statements section is missing a valid markdown table.',
+    });
+  }
+
+  const sources = sectionMap.get('data_sources');
+  if (sources && !hasDataSourceReference(sources)) {
+    failures.push({
+      gate: 'report.section_contract',
+      source: 'data_sources',
+      message: 'Data sources section does not contain a filing reference or URL.',
+    });
+  }
+}
+
+function runPackageContractGates(
+  canonicalPackage: CanonicalReportPackage,
+  failures: QAFailure[],
+): void {
+  const model = canonicalPackage.reportModel;
+
+  for (const company of model.companies) {
+    const expectedPeriods = [company.snapshotPeriod, company.priorPeriod]
+      .filter((period): period is string => !!period);
+
+    for (const table of company.statementTables) {
+      if (table.periods.length !== expectedPeriods.length) {
+        failures.push({
+          gate: 'data.period_coherence',
+          source: `${company.ticker}:${table.statementType}`,
+          message: `Statement table uses ${table.periods.length} periods, but the locked contract requires ${expectedPeriods.length}.`,
+        });
+        continue;
+      }
+
+      for (let idx = 0; idx < expectedPeriods.length; idx++) {
+        if (table.periods[idx] !== expectedPeriods[idx]) {
+          failures.push({
+            gate: 'data.period_coherence',
+            source: `${company.ticker}:${table.statementType}`,
+            message: `Statement table period contract drifted (${table.periods.join(', ')} vs locked ${expectedPeriods.join(', ')}).`,
+          });
+          break;
+        }
+      }
+    }
+  }
+
+  if (model.type !== 'comparison') return;
+
+  const expectedGroups = model.comparisonRowGroups.map(group => ({
+    title: group.title,
+    rowLabels: group.rowLabels,
+  }));
+  for (const company of model.companies) {
+    if (company.comparisonGroups.length !== expectedGroups.length) {
+      failures.push({
+        gate: 'data.cross_section_equality',
+        source: `${company.ticker}:comparison_groups`,
+        message: 'Comparison row contract does not match the sealed report-level contract.',
+      });
+      continue;
+    }
+
+    for (let idx = 0; idx < expectedGroups.length; idx++) {
+      const expected = expectedGroups[idx]!;
+      const actual = company.comparisonGroups[idx]!;
+      const actualLabels = actual.rows.map(row => row.label);
+      if (
+        actual.title !== expected.title
+        || actualLabels.length !== expected.rowLabels.length
+        || actualLabels.some((label, labelIdx) => label !== expected.rowLabels[labelIdx])
+      ) {
+        failures.push({
+          gate: 'data.cross_section_equality',
+          source: `${company.ticker}:comparison_groups:${expected.title}`,
+          message: 'Comparison rows drifted from the sealed report-level row contract.',
+        });
+        break;
+      }
+    }
+  }
+}
+
+function runCashFamilyPresentationGates(
+  canonicalPackage: CanonicalReportPackage,
+  failures: QAFailure[],
+): void {
+  for (const company of canonicalPackage.reportModel.companies) {
+    const currentValues = company.snapshotPeriod ? company.canonicalPeriodMap.get(company.snapshotPeriod) : null;
+    if (!currentValues) continue;
+
+    const balanceSheet = company.statementTables.find(table => table.statementType === 'balance_sheet');
+    if (!balanceSheet) continue;
+
+    for (const metric of ['cash_and_equivalents', 'restricted_cash', 'short_term_investments'] as const) {
+      if (!hasCashPresentationAlternative(currentValues, metric)) continue;
+      const row = balanceSheet.rows.find(candidate => candidate.key === metric);
+      if (!row) continue;
+      if (row.displays[0] === 'Not reported') {
+        failures.push({
+          gate: 'data.cross_section_equality',
+          source: `${company.ticker}:${metric}`,
+          message: 'Appendix shows a narrower cash-family row as Not reported even though another governed current cash presentation is available from the filing.',
+        });
+      }
+    }
+  }
 }
 
 function runSingleReportCrossSectionGates(
@@ -159,7 +324,7 @@ function runSingleReportCrossSectionGates(
         source: `dashboard:${name}`,
         message: 'Current value is N/A in dashboard but computable in canonical metrics.',
       });
-    } else if (parsedCurrent !== null && !withinTolerance(parsedCurrent, metric.current, metric.unit)) {
+    } else if (parsedCurrent !== null && !withinTolerance(row.current, parsedCurrent, metric.current, metric.unit)) {
       failures.push({
         gate: 'data.cross_section_equality',
         source: `dashboard:${name}`,
@@ -176,7 +341,7 @@ function runSingleReportCrossSectionGates(
     } else if (
       metric.prior !== null &&
       parsedPrior !== null &&
-      !withinTolerance(parsedPrior, metric.prior, metric.unit)
+      !withinTolerance(row.prior, parsedPrior, metric.prior, metric.unit)
     ) {
       failures.push({
         gate: 'data.cross_section_equality',
@@ -321,7 +486,7 @@ function runComparisonReportCrossSectionGates(
       } else if (
         parsedCurrent !== null &&
         metric.current !== null &&
-        !withinTolerance(parsedCurrent, metric.current, metric.unit)
+        !withinTolerance(cell, parsedCurrent, metric.current, metric.unit)
       ) {
         failures.push({
           gate: 'data.cross_section_equality',
@@ -370,7 +535,9 @@ function runSanityGatesForTicker(
 ): void {
   if (!insight?.snapshotPeriod) return;
   const periodMap = buildPeriodValueMap(context, ticker);
+  const sourceMap = buildCanonicalAnnualSourceMap(context, ticker);
   const current = periodMap.get(insight.snapshotPeriod) || {};
+  const currentSources = sourceMap.get(insight.snapshotPeriod) || {};
   const prior = insight.priorPeriod ? (periodMap.get(insight.priorPeriod) || {}) : {};
 
   const assets = finite(current['total_assets']);
@@ -415,7 +582,7 @@ function runSanityGatesForTicker(
   const dna = finite(current['depreciation_and_amortization']);
   const dep = finite(current['depreciation_expense']);
   const amort = finite(current['amortization_expense']);
-  if (dna !== null && dep !== null && amort !== null) {
+  if (dna !== null && dep !== null && amort !== null && shouldEnforceDnaReconciliation(currentSources)) {
     const componentSum = dep + amort;
     if (materiallyDiffers(dna, componentSum, 0.1, 50_000)) {
       failures.push({
@@ -435,6 +602,19 @@ function runSanityGatesForTicker(
       gate: 'data.no_fake_na',
       source: `${ticker}:total_debt`,
       message: 'Total Debt is missing even though long-term or short-term debt is present.',
+    });
+  }
+  if (
+    totalDebt !== null
+    && (
+      (longTermDebt !== null && totalDebt + 1_000_000 < longTermDebt)
+      || (shortTermDebt !== null && totalDebt + 1_000_000 < shortTermDebt)
+    )
+  ) {
+    failures.push({
+      gate: 'data.sanity',
+      source: `${ticker}:total_debt`,
+      message: 'Total Debt is lower than a reported debt component, so the debt concept set is internally inconsistent.',
     });
   }
 
@@ -767,13 +947,33 @@ function parseCompactNumber(clean: string): number | null {
   return n;
 }
 
-function withinTolerance(parsed: number, canonical: number, unit: string): boolean {
+function withinTolerance(raw: string, parsed: number, canonical: number, unit: string): boolean {
   const abs = Math.abs(canonical);
   if (unit === '%' || unit === 'x' || unit === 'USD/shares') {
     return Math.abs(parsed - canonical) <= 0.02;
   }
-  const tol = Math.max(abs * 0.03, 1_000_000);
+  const tol = Math.max(abs * 0.03, displayRoundingTolerance(raw), 1_000_000);
   return Math.abs(parsed - canonical) <= tol;
+}
+
+function displayRoundingTolerance(raw: string): number {
+  const trimmed = raw.trim();
+  if (!trimmed || /^n\/a$/i.test(trimmed)) return 0;
+  const suffix = /([BMK])$/i.exec(trimmed)?.[1]?.toUpperCase() || '';
+  const decimals = countDisplayedDecimals(trimmed);
+  const scale = suffix === 'B'
+    ? 1e9
+    : suffix === 'M'
+      ? 1e6
+      : suffix === 'K'
+        ? 1e3
+        : 1;
+  return (scale / Math.pow(10, decimals)) / 2;
+}
+
+function countDisplayedDecimals(raw: string): number {
+  const match = raw.replace(/,/g, '').match(/-?\d+(?:\.(\d+))?/);
+  return match?.[1]?.length || 0;
 }
 
 function finite(v: number | undefined): number | null {
@@ -807,6 +1007,41 @@ function materiallyDiffers(a: number, b: number, relativeTolerance: number, abso
   const gap = Math.abs(a - b);
   const scale = Math.max(Math.abs(a), Math.abs(b), 1);
   return gap > Math.max(scale * relativeTolerance, absoluteTolerance);
+}
+
+function shouldEnforceDnaReconciliation(sources: Record<string, CanonicalFactSource>): boolean {
+  const kinds = [
+    sources['depreciation_and_amortization']?.kind,
+    sources['depreciation_expense']?.kind,
+    sources['amortization_expense']?.kind,
+  ].filter((kind): kind is CanonicalFactSource['kind'] => !!kind);
+  if (kinds.length === 0) return false;
+  return kinds.some(kind => kind === 'derived' || kind === 'adjusted');
+}
+
+function requiredSectionIds(reportType: AnalysisType): readonly string[] {
+  return reportType === 'comparison'
+    ? REQUIRED_COMPARISON_SECTIONS
+    : REQUIRED_SINGLE_SECTIONS;
+}
+
+function hasValidMarkdownTable(section: ReportSection): boolean {
+  const lines = normalizeMissingDataMarkdown(section.content).split('\n');
+  for (let i = 0; i < lines.length - 1; i++) {
+    const line = lines[i]!.trim();
+    const nextLine = lines[i + 1]!.trim();
+    if (line.includes('|') && line.split('|').length >= 3) {
+      if (nextLine.includes('|') && /[-:]{3,}/.test(nextLine)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function hasDataSourceReference(section: ReportSection): boolean {
+  const content = section.content;
+  return /\[[^\]]+\]\(https?:\/\/[^\s)]+\)/i.test(content) || /SEC EDGAR/i.test(content);
 }
 
 export async function writeQAFailureReport(

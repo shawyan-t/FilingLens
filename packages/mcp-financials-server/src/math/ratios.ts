@@ -7,6 +7,7 @@
  */
 
 import type { CompanyFacts, Ratio, RatioName, ProvenanceReceipt } from '@dolph/shared';
+import { crossValidatedShareCount } from '@dolph/shared';
 
 /** Annual filing forms in priority order */
 const ANNUAL_FORMS = new Set(['10-K', '20-F', '40-F']);
@@ -125,7 +126,7 @@ const RATIO_DEFINITIONS: RatioDefinition[] = [
     metrics: ['stockholders_equity', 'shares_outstanding'],
     compute: (v) => {
       if (!v['stockholders_equity']) return null;
-      const shares = crossValidatedShares(v);
+      const shares = crossValidatedShareCount(v);
       if (!shares || shares === 0) return null;
       return v['stockholders_equity']! / shares;
     },
@@ -141,33 +142,6 @@ const RATIO_DEFINITIONS: RatioDefinition[] = [
     },
   },
 ];
-
-/**
- * Cross-validate shares_outstanding against EPS-implied share count.
- * If divergence > 50%, fall back to weighted_avg_shares_diluted.
- */
-function crossValidatedShares(v: Record<string, number>): number | null {
-  const shares = v['shares_outstanding'];
-  if (!shares || !isFinite(shares)) return null;
-
-  const netIncome = v['net_income'];
-  const epsDiluted = v['eps_diluted'];
-
-  if (netIncome != null && epsDiluted != null && isFinite(netIncome) && isFinite(epsDiluted) && epsDiluted !== 0) {
-    const impliedShares = netIncome / epsDiluted;
-    if (isFinite(impliedShares) && impliedShares > 0 && shares > 0) {
-      const divergence = Math.abs(impliedShares - shares) / Math.max(impliedShares, shares);
-      if (divergence > 0.50) {
-        const dilutedShares = v['weighted_avg_shares_diluted'];
-        if (dilutedShares != null && isFinite(dilutedShares) && dilutedShares > 0) {
-          return dilutedShares;
-        }
-      }
-    }
-  }
-
-  return shares;
-}
 
 /**
  * Build a period-coherent data map: for each annual period, collect all
@@ -277,10 +251,16 @@ export function calculateRatios(
         }
       }
 
-      if (def.name === 'quick_ratio' && 'inventory' in values) {
-        components['inventory'] = values['inventory']!;
-        if (periodProvenance['inventory']) {
-          ratioProvenance['inventory'] = periodProvenance['inventory']!;
+      const notes: string[] = [];
+
+      if (def.name === 'quick_ratio') {
+        if ('inventory' in values) {
+          components['inventory'] = values['inventory']!;
+          if (periodProvenance['inventory']) {
+            ratioProvenance['inventory'] = periodProvenance['inventory']!;
+          }
+        } else {
+          notes.push('Inventory not reported; quick ratio equals current ratio');
         }
       }
 
@@ -292,6 +272,7 @@ export function calculateRatios(
         components,
         period,
         provenance: Object.keys(ratioProvenance).length > 0 ? ratioProvenance : undefined,
+        ...(notes.length > 0 ? { notes } : {}),
       });
       break;
     }

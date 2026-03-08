@@ -28,6 +28,9 @@ export function createPlan(
   return createComparisonPlan(tickers, policy);
 }
 
+/** Annual filing forms that serve as authoritative anchors. */
+const ANNUAL_FILING_TYPES = ['10-K', '20-F', '40-F'] as const;
+
 function createSinglePlan(ticker: string, policy?: ReportingPolicy): AgentPlan {
   const statementLimit = policy?.statementHistoryPeriods ?? 5;
   const trendPeriods = policy?.trendHistoryPeriods ?? 10;
@@ -37,6 +40,11 @@ function createSinglePlan(ticker: string, policy?: ReportingPolicy): AgentPlan {
       params: { ticker, limit: 15 },
       purpose: `Get recent filings for ${ticker}`,
     },
+    ...ANNUAL_FILING_TYPES.map(filingType => ({
+      tool: 'get_company_filings' as const,
+      params: { ticker, filing_type: filingType, limit: 3 },
+      purpose: `Get ${filingType} annual filings for ${ticker}`,
+    })),
     {
       tool: 'get_company_facts',
       params: { ticker },
@@ -89,6 +97,11 @@ function createComparisonPlan(tickers: string[], policy?: ReportingPolicy): Agen
         params: { ticker, limit: 15 },
         purpose: `Get recent filings for ${ticker}`,
       },
+      ...ANNUAL_FILING_TYPES.map(filingType => ({
+        tool: 'get_company_filings' as const,
+        params: { ticker, filing_type: filingType, limit: 3 },
+        purpose: `Get ${filingType} annual filings for ${ticker}`,
+      })),
       {
         tool: 'get_company_facts',
         params: { ticker },

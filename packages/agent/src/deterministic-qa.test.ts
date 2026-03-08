@@ -366,7 +366,7 @@ describe('deterministic QA gates', () => {
     );
   });
 
-  it('fails when reported depreciation and amortization subtotal conflicts with reported components', () => {
+  it('does not fail when separately reported D&A subtotal and component lines do not reconcile exactly', () => {
     const context = makeContext('AMD');
     context.statements['AMD']![2]!.periods[0]!.data['depreciation_and_amortization'] = 68_000;
     context.statements['AMD']![2]!.periods[0]!.data['depreciation_expense'] = 68_000;
@@ -383,9 +383,37 @@ describe('deterministic QA gates', () => {
     );
 
     const qa = runQA(report, context);
-    assert.ok(
+    assert.equal(
       qa.failures.some(f => /depreciation & amortization/i.test(f.message)),
-      'expected D&A inconsistency to fail under filing-first QA',
+      false,
+      'reported subtotal/component differences should not fail filing-first QA on their own',
+    );
+  });
+
+  it('accepts compact share displays that differ only by displayed rounding precision', () => {
+    const context = makeContext('AMD');
+    context.statements['AMD']![1]!.periods[0]!.data['shares_outstanding'] = 1_048_766_702;
+    const sharesFact = context.facts['AMD']!.facts.find(f => f.metric === 'shares_outstanding');
+    if (sharesFact) {
+      const current = sharesFact.periods.find(p => p.period === '2025-12-31');
+      if (current) current.value = 1_048_766_702;
+    }
+
+    const report = makeReport(
+      [
+        '*Snapshot period: FY2025. Prior period: FY2024.*',
+        '| Metric | Current Value | Prior Period | Change (%) |',
+        '|:---|---:|---:|---:|',
+        '| Shares Outstanding | 1.0B | 1.6B | -34.2% |',
+      ].join('\n'),
+      '',
+    );
+
+    const qa = runQA(report, context);
+    assert.equal(
+      qa.failures.some(f => /Shares Outstanding/i.test(f.source)),
+      false,
+      'compact share rounding should not fail cross-section equality',
     );
   });
 

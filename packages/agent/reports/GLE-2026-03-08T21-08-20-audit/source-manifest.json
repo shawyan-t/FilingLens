@@ -1,0 +1,1514 @@
+{
+  "sources": [
+    {
+      "url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/ea0258023-20f_globalengine.htm",
+      "description": "GLE 20-F",
+      "date": "2025-10-21"
+    },
+    {
+      "url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390024092864/ea0217036-20f_global.htm",
+      "description": "GLE 20-F",
+      "date": "2024-10-31"
+    }
+  ],
+  "provenance": {
+    "GLE:revenue:2025-06-30": {
+      "xbrl_tag": "Revenues",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "governed_revenue_scope",
+      "candidate_tags_considered": [
+        "Revenues",
+        "RevenueFromContractWithCustomerExcludingAssessedTax"
+      ],
+      "concept_scope": "total_revenues",
+      "selection_rationale": "Revenue selected by governed concept scope. Chosen tag Revenues (total_revenues) outranked equally current alternatives. Equally current candidates considered: Revenues(total_revenues), RevenueFromContractWithCustomerExcludingAssessedTax(contract_revenue_excluding_assessed_tax)."
+    },
+    "GLE:revenue:2024-12-31": {
+      "xbrl_tag": "Revenues",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-055943",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025055943/0001213900-25-055943-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "governed_revenue_scope",
+      "candidate_tags_considered": [
+        "Revenues",
+        "RevenueFromContractWithCustomerExcludingAssessedTax"
+      ],
+      "concept_scope": "total_revenues",
+      "selection_rationale": "Revenue selected by governed concept scope. Chosen tag Revenues (total_revenues) outranked equally current alternatives. Equally current candidates considered: Revenues(total_revenues), RevenueFromContractWithCustomerExcludingAssessedTax(contract_revenue_excluding_assessed_tax)."
+    },
+    "GLE:revenue:2024-06-30": {
+      "xbrl_tag": "Revenues",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-24-092864",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390024092864/0001213900-24-092864-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "governed_revenue_scope",
+      "candidate_tags_considered": [
+        "Revenues",
+        "RevenueFromContractWithCustomerExcludingAssessedTax"
+      ],
+      "concept_scope": "total_revenues",
+      "selection_rationale": "Revenue selected by governed concept scope. Chosen tag Revenues (total_revenues) outranked equally current alternatives. Equally current candidates considered: Revenues(total_revenues), RevenueFromContractWithCustomerExcludingAssessedTax(contract_revenue_excluding_assessed_tax)."
+    },
+    "GLE:cost_of_revenue:2025-06-30": {
+      "xbrl_tag": "CostOfRevenue",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "CostOfRevenue"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:cost_of_revenue:2024-12-31": {
+      "xbrl_tag": "CostOfRevenue",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-055943",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025055943/0001213900-25-055943-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "CostOfRevenue"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:cost_of_revenue:2024-06-30": {
+      "xbrl_tag": "CostOfRevenue",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-24-092864",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390024092864/0001213900-24-092864-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "CostOfRevenue"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:gross_profit:2025-06-30": {
+      "xbrl_tag": "GrossProfit",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "GrossProfit"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:gross_profit:2024-12-31": {
+      "xbrl_tag": "GrossProfit",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-055943",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025055943/0001213900-25-055943-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "GrossProfit"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:gross_profit:2024-06-30": {
+      "xbrl_tag": "GrossProfit",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-24-092864",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390024092864/0001213900-24-092864-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "GrossProfit"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:operating_expenses:2025-06-30": {
+      "xbrl_tag": "OperatingExpenses",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "OperatingExpenses"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:operating_expenses:2024-12-31": {
+      "xbrl_tag": "OperatingExpenses",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-055943",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025055943/0001213900-25-055943-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "OperatingExpenses"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:operating_expenses:2024-06-30": {
+      "xbrl_tag": "OperatingExpenses",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-24-092864",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390024092864/0001213900-24-092864-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "OperatingExpenses"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:operating_income:2025-06-30": {
+      "xbrl_tag": "OperatingIncomeLoss",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "OperatingIncomeLoss"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:operating_income:2024-12-31": {
+      "xbrl_tag": "OperatingIncomeLoss",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-055943",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025055943/0001213900-25-055943-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "OperatingIncomeLoss"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:operating_income:2024-06-30": {
+      "xbrl_tag": "OperatingIncomeLoss",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-24-092864",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390024092864/0001213900-24-092864-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "OperatingIncomeLoss"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:net_income:2025-06-30": {
+      "xbrl_tag": "NetIncomeLoss",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "NetIncomeLoss"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:net_income:2024-12-31": {
+      "xbrl_tag": "NetIncomeLoss",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-055943",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025055943/0001213900-25-055943-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "NetIncomeLoss"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:net_income:2024-06-30": {
+      "xbrl_tag": "NetIncomeLoss",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-24-092864",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390024092864/0001213900-24-092864-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "NetIncomeLoss"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:eps_basic:2025-06-30": {
+      "xbrl_tag": "EarningsPerShareBasic",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "EarningsPerShareBasic"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:eps_basic:2024-12-31": {
+      "xbrl_tag": "EarningsPerShareBasic",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-055943",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025055943/0001213900-25-055943-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "EarningsPerShareBasic"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:eps_basic:2024-06-30": {
+      "xbrl_tag": "EarningsPerShareBasic",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-24-092864",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390024092864/0001213900-24-092864-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "EarningsPerShareBasic"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:eps_diluted:2025-06-30": {
+      "xbrl_tag": "EarningsPerShareDiluted",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "EarningsPerShareDiluted"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:eps_diluted:2024-12-31": {
+      "xbrl_tag": "EarningsPerShareDiluted",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-055943",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025055943/0001213900-25-055943-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "EarningsPerShareDiluted"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:eps_diluted:2024-06-30": {
+      "xbrl_tag": "EarningsPerShareDiluted",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-24-092864",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390024092864/0001213900-24-092864-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "EarningsPerShareDiluted"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:shares_outstanding:2025-06-30": {
+      "xbrl_tag": "CommonStockSharesOutstanding",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "CommonStockSharesOutstanding"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:shares_outstanding:2024-12-31": {
+      "xbrl_tag": "CommonStockSharesOutstanding",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-055943",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025055943/0001213900-25-055943-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "CommonStockSharesOutstanding"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:shares_outstanding:2024-06-30": {
+      "xbrl_tag": "CommonStockSharesOutstanding",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-055943",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025055943/0001213900-25-055943-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "CommonStockSharesOutstanding"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:shares_outstanding:2023-06-30": {
+      "xbrl_tag": "CommonStockSharesOutstanding",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-24-092864",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390024092864/0001213900-24-092864-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "CommonStockSharesOutstanding"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:weighted_avg_shares_diluted:2025-06-30": {
+      "xbrl_tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "WeightedAverageNumberOfDilutedSharesOutstanding"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:weighted_avg_shares_diluted:2024-12-31": {
+      "xbrl_tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-055943",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025055943/0001213900-25-055943-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "WeightedAverageNumberOfDilutedSharesOutstanding"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:weighted_avg_shares_diluted:2024-06-30": {
+      "xbrl_tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "WeightedAverageNumberOfDilutedSharesOutstanding"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:weighted_avg_shares_diluted:2023-12-31": {
+      "xbrl_tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-055943",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025055943/0001213900-25-055943-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "WeightedAverageNumberOfDilutedSharesOutstanding"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:weighted_avg_shares_diluted:2023-06-30": {
+      "xbrl_tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "WeightedAverageNumberOfDilutedSharesOutstanding"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:weighted_avg_shares_diluted:2022-06-30": {
+      "xbrl_tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-24-092864",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390024092864/0001213900-24-092864-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "WeightedAverageNumberOfDilutedSharesOutstanding"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:pretax_income:2025-06-30": {
+      "xbrl_tag": "IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:pretax_income:2024-12-31": {
+      "xbrl_tag": "IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-055943",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025055943/0001213900-25-055943-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:pretax_income:2024-06-30": {
+      "xbrl_tag": "IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-24-092864",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390024092864/0001213900-24-092864-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:income_tax_expense:2025-06-30": {
+      "xbrl_tag": "IncomeTaxExpenseBenefit",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "IncomeTaxExpenseBenefit",
+        "IncomeTaxesPaidNet"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:income_tax_expense:2024-12-31": {
+      "xbrl_tag": "IncomeTaxExpenseBenefit",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-055943",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025055943/0001213900-25-055943-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "IncomeTaxExpenseBenefit",
+        "IncomeTaxesPaidNet"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:income_tax_expense:2024-06-30": {
+      "xbrl_tag": "IncomeTaxExpenseBenefit",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-24-092864",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390024092864/0001213900-24-092864-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "IncomeTaxExpenseBenefit",
+        "IncomeTaxesPaidNet"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:total_assets:2025-06-30": {
+      "xbrl_tag": "Assets",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "Assets"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:total_assets:2024-12-31": {
+      "xbrl_tag": "Assets",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-055943",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025055943/0001213900-25-055943-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "Assets"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:total_assets:2024-06-30": {
+      "xbrl_tag": "Assets",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-24-092864",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390024092864/0001213900-24-092864-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "Assets"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:total_liabilities:2025-06-30": {
+      "xbrl_tag": "Liabilities",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "Liabilities"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:total_liabilities:2024-12-31": {
+      "xbrl_tag": "Liabilities",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-055943",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025055943/0001213900-25-055943-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "Liabilities"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:total_liabilities:2024-06-30": {
+      "xbrl_tag": "Liabilities",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-24-092864",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390024092864/0001213900-24-092864-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "Liabilities"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:stockholders_equity:2025-06-30": {
+      "xbrl_tag": "StockholdersEquity",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "StockholdersEquity"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:stockholders_equity:2024-12-31": {
+      "xbrl_tag": "StockholdersEquity",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-055943",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025055943/0001213900-25-055943-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "StockholdersEquity"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:stockholders_equity:2024-06-30": {
+      "xbrl_tag": "StockholdersEquity",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-24-092864",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390024092864/0001213900-24-092864-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "StockholdersEquity"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:current_assets:2025-06-30": {
+      "xbrl_tag": "AssetsCurrent",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "AssetsCurrent"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:current_assets:2024-12-31": {
+      "xbrl_tag": "AssetsCurrent",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-055943",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025055943/0001213900-25-055943-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "AssetsCurrent"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:current_assets:2024-06-30": {
+      "xbrl_tag": "AssetsCurrent",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-24-092864",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390024092864/0001213900-24-092864-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "AssetsCurrent"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:current_liabilities:2025-06-30": {
+      "xbrl_tag": "LiabilitiesCurrent",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "LiabilitiesCurrent"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:current_liabilities:2024-12-31": {
+      "xbrl_tag": "LiabilitiesCurrent",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-055943",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025055943/0001213900-25-055943-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "LiabilitiesCurrent"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:current_liabilities:2024-06-30": {
+      "xbrl_tag": "LiabilitiesCurrent",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-24-092864",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390024092864/0001213900-24-092864-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "LiabilitiesCurrent"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:cash_and_equivalents:2025-06-30": {
+      "xbrl_tag": "Cash",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "Cash",
+        "CashAndCashEquivalentsAtCarryingValue"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:cash_and_equivalents:2024-12-31": {
+      "xbrl_tag": "Cash",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-055943",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025055943/0001213900-25-055943-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "Cash",
+        "CashAndCashEquivalentsAtCarryingValue"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:cash_and_equivalents:2024-06-30": {
+      "xbrl_tag": "Cash",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-24-092864",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390024092864/0001213900-24-092864-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "Cash",
+        "CashAndCashEquivalentsAtCarryingValue"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:cash_and_equivalents_and_restricted_cash:2025-06-30": {
+      "xbrl_tag": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:cash_and_equivalents_and_restricted_cash:2024-12-31": {
+      "xbrl_tag": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-055943",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025055943/0001213900-25-055943-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:cash_and_equivalents_and_restricted_cash:2024-06-30": {
+      "xbrl_tag": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:cash_and_equivalents_and_restricted_cash:2023-06-30": {
+      "xbrl_tag": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-24-092864",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390024092864/0001213900-24-092864-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:accounts_receivable:2025-06-30": {
+      "xbrl_tag": "AccountsReceivableNetCurrent",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "AccountsReceivableNetCurrent"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:accounts_receivable:2024-12-31": {
+      "xbrl_tag": "AccountsReceivableNetCurrent",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-055943",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025055943/0001213900-25-055943-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "AccountsReceivableNetCurrent"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:accounts_receivable:2024-06-30": {
+      "xbrl_tag": "AccountsReceivableNetCurrent",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-24-092864",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390024092864/0001213900-24-092864-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "AccountsReceivableNetCurrent"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:other_current_assets:2025-06-30": {
+      "xbrl_tag": "PrepaidExpenseAndOtherAssetsCurrent",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "PrepaidExpenseAndOtherAssetsCurrent"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:other_current_assets:2024-12-31": {
+      "xbrl_tag": "PrepaidExpenseAndOtherAssetsCurrent",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-055943",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025055943/0001213900-25-055943-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "PrepaidExpenseAndOtherAssetsCurrent"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:other_current_assets:2024-06-30": {
+      "xbrl_tag": "PrepaidExpenseAndOtherAssetsCurrent",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-24-092864",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390024092864/0001213900-24-092864-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "PrepaidExpenseAndOtherAssetsCurrent"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:accounts_payable:2024-12-31": {
+      "xbrl_tag": "AccountsPayableCurrent",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-055943",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025055943/0001213900-25-055943-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "AccountsPayableCurrent"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:accounts_payable:2024-06-30": {
+      "xbrl_tag": "AccountsPayableCurrent",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-24-092864",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390024092864/0001213900-24-092864-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "AccountsPayableCurrent"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:retained_earnings:2025-06-30": {
+      "xbrl_tag": "RetainedEarningsAccumulatedDeficit",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "RetainedEarningsAccumulatedDeficit"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:retained_earnings:2024-12-31": {
+      "xbrl_tag": "RetainedEarningsAccumulatedDeficit",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-055943",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025055943/0001213900-25-055943-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "RetainedEarningsAccumulatedDeficit"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:retained_earnings:2024-06-30": {
+      "xbrl_tag": "RetainedEarningsAccumulatedDeficit",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-24-092864",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390024092864/0001213900-24-092864-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "RetainedEarningsAccumulatedDeficit"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:goodwill:2025-06-30": {
+      "xbrl_tag": "Goodwill",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "Goodwill"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:goodwill:2024-12-31": {
+      "xbrl_tag": "Goodwill",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-055943",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025055943/0001213900-25-055943-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "Goodwill"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:operating_cash_flow:2025-06-30": {
+      "xbrl_tag": "NetCashProvidedByUsedInOperatingActivities",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "NetCashProvidedByUsedInOperatingActivities"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:operating_cash_flow:2024-12-31": {
+      "xbrl_tag": "NetCashProvidedByUsedInOperatingActivities",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-055943",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025055943/0001213900-25-055943-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "NetCashProvidedByUsedInOperatingActivities"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:operating_cash_flow:2024-06-30": {
+      "xbrl_tag": "NetCashProvidedByUsedInOperatingActivities",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-24-092864",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390024092864/0001213900-24-092864-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "NetCashProvidedByUsedInOperatingActivities"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:capex:2025-06-30": {
+      "xbrl_tag": "PaymentsToAcquirePropertyPlantAndEquipment",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "PaymentsToAcquirePropertyPlantAndEquipment"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:capex:2024-12-31": {
+      "xbrl_tag": "PaymentsToAcquirePropertyPlantAndEquipment",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-055943",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025055943/0001213900-25-055943-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "PaymentsToAcquirePropertyPlantAndEquipment"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:investing_cash_flow:2025-06-30": {
+      "xbrl_tag": "NetCashProvidedByUsedInInvestingActivities",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "NetCashProvidedByUsedInInvestingActivities"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:investing_cash_flow:2024-12-31": {
+      "xbrl_tag": "NetCashProvidedByUsedInInvestingActivities",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-055943",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025055943/0001213900-25-055943-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "NetCashProvidedByUsedInInvestingActivities"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:financing_cash_flow:2025-06-30": {
+      "xbrl_tag": "NetCashProvidedByUsedInFinancingActivities",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "NetCashProvidedByUsedInFinancingActivities"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:financing_cash_flow:2024-12-31": {
+      "xbrl_tag": "NetCashProvidedByUsedInFinancingActivities",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-055943",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025055943/0001213900-25-055943-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "NetCashProvidedByUsedInFinancingActivities"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:financing_cash_flow:2024-06-30": {
+      "xbrl_tag": "NetCashProvidedByUsedInFinancingActivities",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-24-092864",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390024092864/0001213900-24-092864-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "NetCashProvidedByUsedInFinancingActivities"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:dividends_paid:2022-06-30": {
+      "xbrl_tag": "PaymentsOfDividends",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-24-092864",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390024092864/0001213900-24-092864-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "PaymentsOfDividends"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:depreciation_and_amortization:2025-06-30": {
+      "xbrl_tag": "DepreciationDepletionAndAmortization",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "DepreciationDepletionAndAmortization"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:depreciation_and_amortization:2024-12-31": {
+      "xbrl_tag": "DepreciationDepletionAndAmortization",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-055943",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025055943/0001213900-25-055943-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "DepreciationDepletionAndAmortization"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:depreciation_expense:2025-06-30": {
+      "xbrl_tag": "Depreciation",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "Depreciation"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:depreciation_expense:2024-12-31": {
+      "xbrl_tag": "Depreciation",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-055943",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025055943/0001213900-25-055943-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "Depreciation"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:depreciation_expense:2024-06-30": {
+      "xbrl_tag": "Depreciation",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-24-092864",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390024092864/0001213900-24-092864-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "Depreciation"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:amortization_expense:2025-06-30": {
+      "xbrl_tag": "AmortizationOfIntangibleAssets",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "AmortizationOfIntangibleAssets"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:amortization_expense:2024-12-31": {
+      "xbrl_tag": "AmortizationOfIntangibleAssets",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-055943",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025055943/0001213900-25-055943-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "AmortizationOfIntangibleAssets"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:cash_ending:2025-06-30": {
+      "xbrl_tag": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:cash_ending:2024-12-31": {
+      "xbrl_tag": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-055943",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025055943/0001213900-25-055943-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:cash_ending:2024-06-30": {
+      "xbrl_tag": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:cash_ending:2023-06-30": {
+      "xbrl_tag": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-24-092864",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390024092864/0001213900-24-092864-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:ratio:roe:net_income": {
+      "xbrl_tag": "NetIncomeLoss",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "NetIncomeLoss"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:ratio:roe:stockholders_equity": {
+      "xbrl_tag": "StockholdersEquity",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "StockholdersEquity"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:ratio:roa:net_income": {
+      "xbrl_tag": "NetIncomeLoss",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "NetIncomeLoss"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:ratio:roa:total_assets": {
+      "xbrl_tag": "Assets",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "Assets"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:ratio:current_ratio:current_assets": {
+      "xbrl_tag": "AssetsCurrent",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "AssetsCurrent"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:ratio:current_ratio:current_liabilities": {
+      "xbrl_tag": "LiabilitiesCurrent",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "LiabilitiesCurrent"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:ratio:quick_ratio:current_assets": {
+      "xbrl_tag": "AssetsCurrent",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "AssetsCurrent"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:ratio:quick_ratio:current_liabilities": {
+      "xbrl_tag": "LiabilitiesCurrent",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "LiabilitiesCurrent"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:ratio:gross_margin:gross_profit": {
+      "xbrl_tag": "GrossProfit",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "GrossProfit"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:ratio:gross_margin:revenue": {
+      "xbrl_tag": "Revenues",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "governed_revenue_scope",
+      "candidate_tags_considered": [
+        "Revenues",
+        "RevenueFromContractWithCustomerExcludingAssessedTax"
+      ],
+      "concept_scope": "total_revenues",
+      "selection_rationale": "Revenue selected by governed concept scope. Chosen tag Revenues (total_revenues) outranked equally current alternatives. Equally current candidates considered: Revenues(total_revenues), RevenueFromContractWithCustomerExcludingAssessedTax(contract_revenue_excluding_assessed_tax)."
+    },
+    "GLE:ratio:operating_margin:operating_income": {
+      "xbrl_tag": "OperatingIncomeLoss",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "OperatingIncomeLoss"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:ratio:operating_margin:revenue": {
+      "xbrl_tag": "Revenues",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "governed_revenue_scope",
+      "candidate_tags_considered": [
+        "Revenues",
+        "RevenueFromContractWithCustomerExcludingAssessedTax"
+      ],
+      "concept_scope": "total_revenues",
+      "selection_rationale": "Revenue selected by governed concept scope. Chosen tag Revenues (total_revenues) outranked equally current alternatives. Equally current candidates considered: Revenues(total_revenues), RevenueFromContractWithCustomerExcludingAssessedTax(contract_revenue_excluding_assessed_tax)."
+    },
+    "GLE:ratio:net_margin:net_income": {
+      "xbrl_tag": "NetIncomeLoss",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "NetIncomeLoss"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:ratio:net_margin:revenue": {
+      "xbrl_tag": "Revenues",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "governed_revenue_scope",
+      "candidate_tags_considered": [
+        "Revenues",
+        "RevenueFromContractWithCustomerExcludingAssessedTax"
+      ],
+      "concept_scope": "total_revenues",
+      "selection_rationale": "Revenue selected by governed concept scope. Chosen tag Revenues (total_revenues) outranked equally current alternatives. Equally current candidates considered: Revenues(total_revenues), RevenueFromContractWithCustomerExcludingAssessedTax(contract_revenue_excluding_assessed_tax)."
+    },
+    "GLE:ratio:eps:eps_diluted": {
+      "xbrl_tag": "EarningsPerShareDiluted",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "EarningsPerShareDiluted"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:ratio:bvps:stockholders_equity": {
+      "xbrl_tag": "StockholdersEquity",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "StockholdersEquity"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:ratio:bvps:shares_outstanding": {
+      "xbrl_tag": "CommonStockSharesOutstanding",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "CommonStockSharesOutstanding"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:ratio:fcf:operating_cash_flow": {
+      "xbrl_tag": "NetCashProvidedByUsedInOperatingActivities",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "NetCashProvidedByUsedInOperatingActivities"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    },
+    "GLE:ratio:fcf:capex": {
+      "xbrl_tag": "PaymentsToAcquirePropertyPlantAndEquipment",
+      "namespace": "us-gaap",
+      "accession_number": "0001213900-25-100480",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/0001213900-25-100480-index.htm",
+      "extracted_at": "2026-03-08T21:08:19.639Z",
+      "selection_policy": "ordered_tag_priority",
+      "candidate_tags_considered": [
+        "PaymentsToAcquirePropertyPlantAndEquipment"
+      ],
+      "selection_rationale": "Selected by annual freshness, tag priority, and period coverage."
+    }
+  },
+  "filings": {
+    "GLE": [
+      {
+        "accessionNumber": "0001213900-25-100480",
+        "form": "20-F",
+        "filed": "2025-10-21",
+        "url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390025100480/ea0258023-20f_globalengine.htm",
+        "metrics": [
+          "revenue",
+          "cost_of_revenue",
+          "gross_profit",
+          "operating_expenses",
+          "operating_income",
+          "net_income",
+          "eps_basic",
+          "eps_diluted",
+          "shares_outstanding",
+          "weighted_avg_shares_diluted",
+          "pretax_income",
+          "income_tax_expense",
+          "total_assets",
+          "total_liabilities",
+          "stockholders_equity",
+          "current_assets",
+          "current_liabilities",
+          "cash_and_equivalents",
+          "cash_and_equivalents_and_restricted_cash",
+          "accounts_receivable",
+          "other_current_assets",
+          "retained_earnings",
+          "goodwill",
+          "operating_cash_flow",
+          "capex",
+          "investing_cash_flow",
+          "financing_cash_flow",
+          "depreciation_and_amortization",
+          "depreciation_expense",
+          "amortization_expense",
+          "cash_ending"
+        ],
+        "periods": [
+          "2025-06-30",
+          "2024-06-30"
+        ],
+        "sourceKinds": [
+          "xbrl"
+        ]
+      },
+      {
+        "accessionNumber": "0001213900-24-092864",
+        "form": "20-F",
+        "filed": "2024-10-31",
+        "url": "https://www.sec.gov/Archives/edgar/data/1908705/000121390024092864/ea0217036-20f_global.htm",
+        "metrics": [
+          "revenue",
+          "cost_of_revenue",
+          "gross_profit",
+          "operating_expenses",
+          "operating_income",
+          "net_income",
+          "eps_basic",
+          "eps_diluted",
+          "shares_outstanding",
+          "pretax_income",
+          "income_tax_expense",
+          "total_assets",
+          "total_liabilities",
+          "stockholders_equity",
+          "current_assets",
+          "current_liabilities",
+          "cash_and_equivalents",
+          "accounts_receivable",
+          "other_current_assets",
+          "accounts_payable",
+          "retained_earnings",
+          "operating_cash_flow",
+          "financing_cash_flow",
+          "depreciation_expense"
+        ],
+        "periods": [
+          "2024-06-30"
+        ],
+        "sourceKinds": [
+          "xbrl"
+        ]
+      }
+    ]
+  }
+}

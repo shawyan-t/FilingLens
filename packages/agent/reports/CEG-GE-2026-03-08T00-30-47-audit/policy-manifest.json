@@ -1,0 +1,27 @@
+{
+  "policy": {
+    "mode": "institutional",
+    "comparisonBasisMode": "overlap_normalized",
+    "requestedComparisonBasisMode": "overlap_normalized",
+    "statementHistoryPeriods": 5,
+    "trendHistoryPeriods": 10,
+    "returnMetricBasisMode": "average_balance",
+    "sparseDerivationMode": "expanded",
+    "strictLayoutQA": true,
+    "persistAuditArtifacts": true,
+    "narrativeGovernanceMode": "deterministic",
+    "allowExternalContext": false,
+    "comparisonRequireOverlap": true,
+    "comparisonFallbackMode": null,
+    "comparisonMaxPeriodSpreadDays": 45,
+    "metricNAInference": "governed",
+    "displayDerivedLabels": true,
+    "percentMeaningfulBase": 0.05
+  },
+  "report_id": "fl_mmh0nlng_ht7lno",
+  "tickers": [
+    "CEG",
+    "GE"
+  ],
+  "generated_at": "2026-03-08T00:30:47.644Z"
+}

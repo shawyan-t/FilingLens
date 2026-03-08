@@ -2,11 +2,20 @@ import type { AnalysisContext } from '@dolph/shared';
 import type { AnalysisInsights } from './analyzer.js';
 import { analyzeData } from './analyzer.js';
 import { buildReportModel, type ReportModel } from './report-model.js';
+import {
+  generateChartsWithLocks,
+  type ChartPeriodLock,
+  type ChartSet,
+} from './charts.js';
+
+export type CanonicalPeriodLocks = Record<string, ChartPeriodLock>;
 
 export interface CanonicalReportPackage {
   context: AnalysisContext;
   insights: Record<string, AnalysisInsights>;
   reportModel: ReportModel;
+  periodLocks: CanonicalPeriodLocks;
+  charts: ChartSet;
 }
 
 export function buildCanonicalReportPackage(
@@ -14,10 +23,19 @@ export function buildCanonicalReportPackage(
 ): CanonicalReportPackage {
   const insights = analyzeData(context, context.policy);
   const reportModel = buildReportModel(context, insights);
+  const periodLocks = Object.fromEntries(
+    context.tickers.map(ticker => [ticker, {
+      current: insights[ticker]?.snapshotPeriod ?? null,
+      prior: insights[ticker]?.priorPeriod ?? null,
+    }]),
+  ) as CanonicalPeriodLocks;
+  const charts = generateChartsWithLocks(context, periodLocks);
   return {
     context,
     insights,
     reportModel,
+    periodLocks,
+    charts,
   };
 }
 

@@ -7,7 +7,7 @@
   "generated_at": "2026-03-07T00:00:00.000Z",
   "metadata": {
     "llm_calls": 0,
-    "total_duration_ms": 60,
+    "total_duration_ms": 84,
     "data_points_used": 3300,
     "snapshot_id": "snap_2026-03-07_tf6l06",
     "policy_mode": "institutional",

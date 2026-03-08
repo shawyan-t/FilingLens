@@ -12,8 +12,9 @@ import type {
   ReportingPolicy,
   TrendData,
 } from '@dolph/shared';
-import { formatMetricChange, getMappingByName } from '@dolph/shared';
+import { formatMetricChange, getMappingByName, crossValidatedShareCount, shareCountDiverges } from '@dolph/shared';
 import {
+  hasCashPresentationAlternative,
   buildCanonicalAnnualPeriodMap,
   buildCanonicalAnnualPeriodMetadataMap,
   buildCanonicalAnnualSourceMap,
@@ -30,6 +31,7 @@ interface KeyMetricValue {
   prior: number | null;
   change: number | null;
   unit: MetricUnit;
+  notes?: string[];
 }
 
 export interface PeriodBasis {
@@ -63,7 +65,7 @@ interface MetricDefinition {
   displayName: string;
   unit: MetricUnit;
   dependencies: string[];
-  compute: (values: Record<string, number>) => number | null;
+  compute: (values: Record<string, number>, notes?: string[]) => number | null;
 }
 
 const ANNUAL_FORMS = new Set(['10-K', '20-F', '40-F']);
@@ -155,6 +157,41 @@ const LEDGER_DEFINITIONS: MetricDefinition[] = [
     compute: v => finiteOrNull(v['cash_and_equivalents']),
   },
   {
+    key: 'cash_and_equivalents_and_restricted_cash',
+    displayName: 'Cash, Cash Equivalents & Restricted Cash',
+    unit: 'USD',
+    dependencies: ['cash_and_equivalents_and_restricted_cash'],
+    compute: v => finiteOrNull(v['cash_and_equivalents_and_restricted_cash']),
+  },
+  {
+    key: 'restricted_cash',
+    displayName: 'Restricted Cash',
+    unit: 'USD',
+    dependencies: ['restricted_cash'],
+    compute: v => finiteOrNull(v['restricted_cash']),
+  },
+  {
+    key: 'cash_and_equivalents_and_short_term_investments',
+    displayName: 'Cash, Cash Equivalents & Short-Term Investments',
+    unit: 'USD',
+    dependencies: ['cash_and_equivalents_and_short_term_investments'],
+    compute: v => finiteOrNull(v['cash_and_equivalents_and_short_term_investments']),
+  },
+  {
+    key: 'short_term_investments',
+    displayName: 'Short-Term Investments',
+    unit: 'USD',
+    dependencies: ['short_term_investments'],
+    compute: v => finiteOrNull(v['short_term_investments']),
+  },
+  {
+    key: 'marketable_securities',
+    displayName: 'Marketable Securities',
+    unit: 'USD',
+    dependencies: ['marketable_securities'],
+    compute: v => finiteOrNull(v['marketable_securities']),
+  },
+  {
     key: 'long_term_debt',
     displayName: 'Long-Term Debt',
     unit: 'USD',
@@ -174,6 +211,13 @@ const LEDGER_DEFINITIONS: MetricDefinition[] = [
     unit: 'USD',
     dependencies: ['operating_cash_flow'],
     compute: v => finiteOrNull(v['operating_cash_flow']),
+  },
+  {
+    key: 'cash_ending',
+    displayName: 'Cash at End of Period (cash-flow statement)',
+    unit: 'USD',
+    dependencies: ['cash_ending'],
+    compute: v => finiteOrNull(v['cash_ending']),
   },
   {
     key: 'capex',
@@ -280,12 +324,15 @@ const LEDGER_DEFINITIONS: MetricDefinition[] = [
     displayName: 'Quick Ratio',
     unit: 'x',
     dependencies: ['current_assets', 'current_liabilities'],
-    compute: v => {
+    compute: (v, notes) => {
       const currentAssets = finiteOrNull(v['current_assets']);
       const currentLiabilities = finiteOrNull(v['current_liabilities']);
       if (currentAssets === null || currentLiabilities === null || currentLiabilities === 0) return null;
-      const inventory = finiteOrNull(v['inventory']) ?? 0;
-      return (currentAssets - inventory) / currentLiabilities;
+      const inventory = finiteOrNull(v['inventory']);
+      if (inventory === null) {
+        notes?.push('Inventory not reported; quick ratio equals current ratio');
+      }
+      return (currentAssets - (inventory ?? 0)) / currentLiabilities;
     },
   },
   {
@@ -342,25 +389,14 @@ export function analyzeData(
   policy: ReportingPolicy = context.policy || DEFAULT_ANALYZER_POLICY,
 ): Record<string, AnalysisInsights> {
   const results: Record<string, AnalysisInsights> = {};
-  const periodMaps = new Map<string, Map<string, PeriodBucket>>();
-
-  for (const ticker of context.tickers) {
-    periodMaps.set(ticker, buildAnnualPeriodMap(context, ticker));
-  }
-
-  const comparisonBasis = context.type === 'comparison'
-    ? selectComparisonBasis(context, periodMaps, policy)
-    : null;
-  context.comparison_basis = comparisonBasis;
+  const { periodMaps, periodBases } = resolvePeriodAnchors(context, policy);
 
   for (const ticker of context.tickers) {
     const trends = context.trends[ticker] || [];
     const facts = context.facts[ticker];
     const periodMap = periodMaps.get(ticker) || new Map<string, PeriodBucket>();
     const sourceMap = buildCanonicalAnnualSourceMap(context, ticker);
-    const basis = comparisonBasis
-      ? selectComparisonPeriodBasis(ticker, periodMap, facts, comparisonBasis, policy)
-      : selectPeriodBasis(periodMap, facts);
+    const basis = periodBases[ticker] || selectPeriodBasis(periodMap, facts);
     const ledger = computeLedgerMetrics(periodMap, sourceMap, basis.current, basis.prior, policy);
     const sanityFlags = runSanityChecks(ledger, periodMap, basis.current);
     const keyMetrics = toKeyMetricsMap(ledger.metrics, sanityFlags.excludedMetricKeys);
@@ -384,6 +420,40 @@ export function analyzeData(
   }
 
   return results;
+}
+
+export function resolvePeriodAnchors(
+  context: AnalysisContext,
+  policy: ReportingPolicy = context.policy || DEFAULT_ANALYZER_POLICY,
+): {
+  periodMaps: Map<string, Map<string, PeriodBucket>>;
+  comparisonBasis: ComparisonBasisResolution | null;
+  periodBases: Record<string, PeriodBasis>;
+} {
+  const periodMaps = new Map<string, Map<string, PeriodBucket>>();
+  for (const ticker of context.tickers) {
+    periodMaps.set(ticker, buildAnnualPeriodMap(context, ticker));
+  }
+
+  const comparisonBasis = context.type === 'comparison'
+    ? selectComparisonBasis(context, periodMaps, policy)
+    : null;
+  context.comparison_basis = comparisonBasis;
+
+  const periodBases: Record<string, PeriodBasis> = {};
+  for (const ticker of context.tickers) {
+    const periodMap = periodMaps.get(ticker) || new Map<string, PeriodBucket>();
+    const facts = context.facts[ticker];
+    periodBases[ticker] = comparisonBasis
+      ? selectComparisonPeriodBasis(ticker, periodMap, facts, comparisonBasis, policy)
+      : selectPeriodBasis(periodMap, facts);
+  }
+
+  return {
+    periodMaps,
+    comparisonBasis,
+    periodBases,
+  };
 }
 
 function selectComparisonBasis(
@@ -774,13 +844,16 @@ function computeLedgerMetrics(
 
   const metrics: LedgerMetric[] = [];
   for (const def of LEDGER_DEFINITIONS) {
-    const currentComputed = computeMetricFromValues(def, snapshotValues);
+    const computeNotes: string[] = [];
+    const currentComputed = computeMetricFromValues(def, snapshotValues, computeNotes);
     const priorComputed = computeMetricFromValues(def, priorValues);
 
     const current = currentComputed;
     const prior = priorComputed;
 
     const basis = metricBasisUsage(def.key, snapshotValues, priorValues, policy);
+    const basisNote = metricNote(def.key, basis);
+    const allNotes = [basisNote, ...computeNotes].filter(Boolean).join('; ');
     metrics.push({
       key: def.key,
       displayName: def.displayName,
@@ -793,7 +866,7 @@ function computeLedgerMetrics(
         prior: resolveAvailabilityReason(def, prior, priorComputed, priorValues, priorSources, priorPeriod !== null),
       },
       basis: basis ?? undefined,
-      note: metricNote(def.key, basis),
+      note: allNotes || undefined,
     });
   }
 
@@ -902,9 +975,10 @@ function computeLedgerMetrics(
 function computeMetricFromValues(
   def: MetricDefinition,
   values: Record<string, number>,
+  notes?: string[],
 ): number | null {
   if (Object.keys(values).length === 0) return null;
-  const output = def.compute(values);
+  const output = def.compute(values, notes);
   return finiteOrNull(output);
 }
 
@@ -959,6 +1033,9 @@ function runSanityChecks(
 
   const periodLockFailures = ledger.metrics
     .filter(m => m.current === null && m.prior !== null)
+    .filter(m => !(m.key === 'cash_and_equivalents' && hasCashPresentationAlternative(currentValues, 'cash_and_equivalents')))
+    .filter(m => !(m.key === 'restricted_cash' && hasCashPresentationAlternative(currentValues, 'restricted_cash')))
+    .filter(m => !(m.key === 'short_term_investments' && hasCashPresentationAlternative(currentValues, 'short_term_investments')))
     .map(m => m.displayName);
   if (periodLockFailures.length > 0) {
     flags.push({
@@ -1184,8 +1261,8 @@ function resolveDebt(values: Record<string, number>): number | null {
 
   const longTerm = finiteOrNull(values['long_term_debt']);
   const shortTerm = finiteOrNull(values['short_term_debt']);
-  if (longTerm === null && shortTerm === null) return null;
-  return (longTerm ?? 0) + (shortTerm ?? 0);
+  if (longTerm === null || shortTerm === null) return null;
+  return longTerm + shortTerm;
 }
 
 function safeDivide(a: number | undefined, b: number | undefined): number | null {
@@ -1202,9 +1279,8 @@ function finiteOrNull(value: number | undefined | null): number | null {
 
 /**
  * Cross-validate shares_outstanding against EPS-implied share count.
- * If divergence > 50%, the reported shares_outstanding is likely on a different
- * scale (e.g., 22K vs 17M for small biotechs). In that case, fall back to
- * weighted_avg_shares_diluted for per-share calculations.
+ * Delegates core divergence logic to the shared crossValidatedShareCount(),
+ * then wraps the result with MetricBasisUsage metadata.
  */
 function crossValidatedShares(v: Record<string, number>): { value: number | null; basis: MetricBasisUsage } {
   const shares = finiteOrNull(v['shares_outstanding']);
@@ -1222,35 +1298,26 @@ function crossValidatedShares(v: Record<string, number>): { value: number | null
     };
   }
 
-  const netIncome = finiteOrNull(v['net_income']);
-  const epsDiluted = finiteOrNull(v['eps_diluted']);
+  const validated = crossValidatedShareCount(v);
+  const divergent = shareCountDiverges(v);
 
-  if (netIncome !== null && epsDiluted !== null && epsDiluted !== 0) {
-    const impliedShares = netIncome / epsDiluted;
-    if (isFinite(impliedShares) && impliedShares > 0 && shares > 0) {
-      const divergence = Math.abs(impliedShares - shares) / Math.max(impliedShares, shares);
-      if (divergence > 0.50) {
-        const dilutedShares = finiteOrNull(v['weighted_avg_shares_diluted']);
-        if (dilutedShares !== null && dilutedShares > 0) {
-          return {
-            value: dilutedShares,
-            basis: {
-              metric: 'bvps',
-              displayName: 'Book Value Per Share',
-              basis: 'cross_validated_fallback',
-              fallbackUsed: true,
-              note: 'Period-end shares diverged materially from EPS-implied diluted shares; BVPS uses diluted weighted-average shares as a governed fallback.',
-              disclosureText: 'Book Value Per Share uses diluted weighted-average shares because reported period-end shares diverged materially from EPS-implied diluted shares.',
-              alternativesConsidered: ['period_end_shares', 'weighted_average_diluted'],
-            },
-          };
-        }
-      }
-    }
+  if (divergent && validated !== null && validated !== shares) {
+    return {
+      value: validated,
+      basis: {
+        metric: 'bvps',
+        displayName: 'Book Value Per Share',
+        basis: 'cross_validated_fallback',
+        fallbackUsed: true,
+        note: 'Period-end shares diverged materially from EPS-implied diluted shares; BVPS uses diluted weighted-average shares as a governed fallback.',
+        disclosureText: 'Book Value Per Share uses diluted weighted-average shares because reported period-end shares diverged materially from EPS-implied diluted shares.',
+        alternativesConsidered: ['period_end_shares', 'weighted_average_diluted'],
+      },
+    };
   }
 
   return {
-    value: shares,
+    value: validated,
     basis: {
       metric: 'bvps',
       displayName: 'Book Value Per Share',

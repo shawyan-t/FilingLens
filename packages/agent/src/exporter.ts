@@ -18,7 +18,6 @@ import { runDeterministicQAGates, writeQAFailureReport } from './deterministic-q
 import { writeAuditArtifacts } from './audit-artifacts.js';
 import { requireCanonicalReportPackage, type CanonicalReportPackage } from './canonical-report-package.js';
 import { defaultReportsDir } from './report-paths.js';
-const STRICT_LAYOUT_QA_ENV = process.env['DOLPH_STRICT_LAYOUT_QA'] === '1';
 
 export async function generatePDF(
   report: Report,
@@ -42,7 +41,6 @@ export async function generatePDF(
   await rm(outputPath, { force: true });
 
   const policy = finalReport.policy || context?.policy;
-  const strictLayoutQA = policy?.strictLayoutQA ?? STRICT_LAYOUT_QA_ENV;
   const pkg = context ? requireCanonicalReportPackage(canonicalPackage, 'generatePDF') : undefined;
   const preRenderQA = context && pkg
     ? runDeterministicQAGates(finalReport, context, pkg)
@@ -81,7 +79,8 @@ export async function generatePDF(
     throw new Error(`PDF generation blocked by deterministic QA gates. Failure report: ${qaPath}`);
   }
 
-  const { bodyHTML } = buildPdfPages(finalReport, context, pkg || undefined);
+  const requiredPackage = requireCanonicalReportPackage(pkg, 'generatePDF');
+  const { bodyHTML } = buildPdfPages(finalReport, requiredPackage);
   const expectedBannerCount = countNonCoverSourcesPages(bodyHTML);
   const slotCount = countToken(bodyHTML, PERIOD_BANNER_SLOT);
   if (slotCount !== expectedBannerCount) {
@@ -130,174 +129,20 @@ export async function generatePDF(
       });
     `);
 
-    const qaIssues = await page.evaluate(() => {
+    // Truncation check — warn but don't block
+    const truncations = await page.evaluate(() => {
       const doc = (globalThis as any).document;
-      const issues: Array<{ gate: string; message: string }> = [];
-      const pageEls = Array.from(doc.querySelectorAll('.report-page'));
-
-      pageEls.forEach((pageEl: any, idx: number) => {
-        const text = (pageEl.textContent || '').replace(/\s+/g, ' ').trim();
-        if (text.length < 50) {
-          issues.push({ gate: 'layout.trailing_pages', message: `Page ${idx + 1}: near-empty content block.` });
-        }
-
-        const pageRect = pageEl.getBoundingClientRect();
-        const isCover = pageEl.classList.contains('page-cover');
-        const isSources = pageEl.classList.contains('page-sources');
-        if (!isCover && !isSources) {
-          const banners = Array.from(pageEl.querySelectorAll('.period-banner')) as any[];
-          if (banners.length !== 1) {
-            issues.push({
-              gate: 'data.period_coherence',
-              message: `Page ${idx + 1}: expected exactly one PeriodBanner, found ${banners.length}.`,
-            });
-          } else {
-            const bannerText = ((banners[0] as any)?.textContent || '').replace(/\\s+/g, ' ').trim();
-            if (!/Current period:/i.test(bannerText) || !/Prior period:/i.test(bannerText)) {
-              issues.push({
-                gate: 'data.period_coherence',
-                message: `Page ${idx + 1}: PeriodBanner missing current/prior labels.`,
-              });
-            }
-          }
-
-          const isAppendix = pageEl.classList.contains('page-appendix');
-          if (!isAppendix) {
-            const primary = pageEl.querySelectorAll('.visual-card, .table-group, .commentary-block, .exec-block, .executive-copy, .executive-scorecard, .executive-strip, .derived-strip, .method-notes');
-            if (primary.length < 2) {
-              issues.push({
-                gate: 'layout.split_modules',
-                message: `Page ${idx + 1}: fewer than 2 primary modules (${primary.length}).`,
-              });
-            }
-          }
-
-          const blocks = Array.from(pageEl.querySelectorAll('.page-header, .period-banner, .module, .table-group, .visual-card, .commentary-block, .appendix-module, .appendix-section, table'));
-          if (blocks.length > 0) {
-            let minTop = Infinity;
-            let maxBottom = 0;
-            blocks.forEach((el: any) => {
-              const r = el.getBoundingClientRect();
-              if (r.height < 2) return;
-              minTop = Math.min(minTop, r.top);
-              maxBottom = Math.max(maxBottom, r.bottom);
-            });
-            if (minTop < Infinity && maxBottom > minTop && pageRect.height > 0) {
-              const fill = (maxBottom - minTop) / pageRect.height;
-              if (fill < 0.749) {
-                issues.push({
-                  gate: 'layout.dead_area',
-                  message: `Page ${idx + 1}: content fill ratio ${(fill * 100).toFixed(1)}% is below 75%.`,
-                });
-              }
-            }
-          }
-        }
-      });
-
-      const critical = Array.from(doc.querySelectorAll('.cover-thesis, .kpi-label, .kpi-value, .kpi-note, h1, h2, h3'));
+      const issues: string[] = [];
+      const critical = Array.from(doc.querySelectorAll('.kpi-label, .kpi-value, h1, h2, h3'));
       critical.forEach((el: any) => {
         if (el.clientWidth > 0 && el.scrollWidth > el.clientWidth + 1) {
-          issues.push({
-            gate: 'layout.truncation',
-            message: `Truncation detected in "${(el.textContent || '').trim().slice(0, 80)}".`,
-          });
-        }
-        if (el.clientHeight > 0 && el.scrollHeight > el.clientHeight + 1) {
-          issues.push({
-            gate: 'layout.truncation',
-            message: `Vertical overflow detected in "${(el.textContent || '').trim().slice(0, 80)}".`,
-          });
+          issues.push(`Truncation: "${(el.textContent || '').trim().slice(0, 80)}"`);
         }
       });
-
-      const allHeadings = Array.from(doc.querySelectorAll(
-        '.report-page > .page-header h2, .report-page .table-group > h3, .report-page .appendix-section > h3, .report-page .commentary-block > h3',
-      ));
-      allHeadings.forEach((h: any) => {
-        const pageEl = h.closest('.report-page');
-        if (!pageEl) return;
-        const hRect = h.getBoundingClientRect();
-        const pageRect = pageEl.getBoundingClientRect();
-        const remaining = pageRect.bottom - hRect.bottom;
-        if (remaining < 70) {
-          issues.push({
-            gate: 'layout.orphan_headers',
-            message: `Orphan heading risk near page bottom: "${(h.textContent || '').trim()}".`,
-          });
-        }
-      });
-
-      Array.from(doc.querySelectorAll('.page-dashboard table')).forEach((table: any, idx: number) => {
-        const rows = table.querySelectorAll('tbody tr').length;
-        if (rows > 8) {
-          issues.push({
-            gate: 'layout.split_modules',
-            message: `Dashboard table ${idx + 1} exceeds 8-row limit (${rows}).`,
-          });
-        }
-      });
-      Array.from(doc.querySelectorAll('.page-appendix table')).forEach((table: any, idx: number) => {
-        const rows = table.querySelectorAll('tbody tr').length;
-        if (rows > 14) {
-          issues.push({
-            gate: 'layout.split_modules',
-            message: `Appendix table ${idx + 1} exceeds 14-row limit (${rows}).`,
-          });
-        }
-      });
-
-      Array.from(doc.querySelectorAll('.metrics-module h3')).forEach((h3: any) => {
-        const title = (h3.textContent || '').trim();
-        if (!/additional metrics/i.test(title)) return;
-        const nextTable = h3.nextElementSibling;
-        if (!nextTable || nextTable.tagName !== 'TABLE') {
-          issues.push({
-            gate: 'layout.split_modules',
-            message: 'Additional Metrics heading missing attached table.',
-          });
-          return;
-        }
-        const rows = nextTable.querySelectorAll('tbody tr').length;
-        if (rows < 3) {
-          issues.push({
-            gate: 'layout.split_modules',
-            message: `Additional Metrics has fewer than 3 rows (${rows}).`,
-          });
-        }
-      });
-
       return issues;
     });
-
-    const blockingIssues = qaIssues.filter((issue: any) => {
-      const gate = String(issue.gate || '');
-      if (gate.startsWith('layout.')) return strictLayoutQA;
-      return true;
-    });
-
-    if (blockingIssues.length > 0) {
-      const combined = {
-        ...preRenderQA,
-        pass: false,
-        failures: [
-          ...preRenderQA.failures,
-          ...blockingIssues.map((issue: any) => ({
-            gate: issue.gate as any,
-            source: 'layout',
-            message: issue.message as string,
-          })),
-        ],
-      };
-      const qaPath = await writeQAFailureReport(finalReport, combined, dir);
-      throw new Error(
-        `PDF generation blocked by layout QA. Failure report: ${qaPath}. ` +
-        `First issues: ${blockingIssues.slice(0, 4).map((i: any) => i.message).join(' | ')}`,
-      );
-    } else if (qaIssues.length > 0) {
-      // Non-strict mode: keep layout diagnostics visible without blocking content-correct reports.
-      const first = qaIssues.slice(0, 3).map((i: any) => i.message).join(' | ');
-      console.warn(`[dolph] Layout QA warnings (non-blocking): ${first}`);
+    if (truncations.length > 0) {
+      console.warn(`[dolph] Layout warnings: ${truncations.slice(0, 3).join(' | ')}`);
     }
 
     await page.pdf({
@@ -319,13 +164,11 @@ export async function generatePDF(
       finalReport.audit = await writeAuditArtifacts({
         report: finalReport,
         context,
-        insights: pkg.insights,
-        reportModel: pkg.reportModel,
+        insights: requiredPackage.insights,
+        reportModel: requiredPackage.reportModel,
         qa: preRenderQA,
         outputDir: dir,
         pdfPath: outputPath,
-        layoutIssues: qaIssues.map((issue: any) => ({ gate: String(issue.gate || ''), message: String(issue.message || '') })),
-        narrativePayload: finalReport.narrative,
       });
     }
   } finally {

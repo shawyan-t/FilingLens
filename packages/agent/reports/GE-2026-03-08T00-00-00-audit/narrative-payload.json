@@ -1,0 +1,144 @@
+{
+  "mode": "deterministic",
+  "sections": [
+    {
+      "id": "executive_summary",
+      "title": "Executive Summary",
+      "rendered_content": "GE posted $45.9B in revenue (18.5% YoY) and $8.70B in net income (32.8% YoY) for 2025-12-31. Both top-line and bottom-line expansion signal broad-based operational momentum, suggesting the company is capturing demand while maintaining or improving cost discipline. The profitability profile is defined by net margin of 19.0%, framing the earnings quality behind the headline figures.\n\nThe balance sheet carries a moderate profile at 1.08x debt-to-equity and 1.04x current ratio, which is serviceable but leaves less margin for error under stress. The quick ratio of 0.74x confirms liquidity depth after excluding inventory from the coverage calculation.\n\nCash generation is anchored by $8.54B in operating cash flow (81.3% YoY), which converts to $7.26B in free cash flow (97.5% YoY). Capital expenditures of $1.27B (2.8% of revenue) show the reinvestment burden required to sustain the current operating base.",
+      "paragraphs": [
+        {
+          "text": "GE posted $45.9B in revenue (18.5% YoY) and $8.70B in net income (32.8% YoY) for 2025-12-31. Both top-line and bottom-line expansion signal broad-based operational momentum, suggesting the company is capturing demand while maintaining or improving cost discipline. The profitability profile is defined by net margin of 19.0%, framing the earnings quality behind the headline figures.",
+          "fact_ids": [
+            "revenue",
+            "net_income",
+            "net_margin"
+          ]
+        },
+        {
+          "text": "The balance sheet carries a moderate profile at 1.08x debt-to-equity and 1.04x current ratio, which is serviceable but leaves less margin for error under stress. The quick ratio of 0.74x confirms liquidity depth after excluding inventory from the coverage calculation.",
+          "fact_ids": [
+            "de",
+            "current_ratio",
+            "quick_ratio"
+          ]
+        },
+        {
+          "text": "Cash generation is anchored by $8.54B in operating cash flow (81.3% YoY), which converts to $7.26B in free cash flow (97.5% YoY). Capital expenditures of $1.27B (2.8% of revenue) show the reinvestment burden required to sustain the current operating base.",
+          "fact_ids": [
+            "operating_cash_flow",
+            "fcf",
+            "capex",
+            "revenue",
+            "net_income"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "trend_analysis",
+      "title": "Trend Analysis",
+      "rendered_content": "### Total Stockholders' Equity\nTotal Stockholders' Equity is currently $18.9B with -14.5% CAGR. Total Stockholders' Equity has declined at a -14.5% CAGR.\n\n### Total Assets\nTotal Assets is currently $130B with -10.8% CAGR. Total Assets has declined at a -10.8% CAGR.\n\n### Revenue\nRevenue is currently $45.9B with -10.4% CAGR. Revenue has declined at a -10.4% CAGR.\n\n### Total Liabilities\nTotal Liabilities is currently $111B with -9.9% CAGR. Total Liabilities has declined at a -9.9% CAGR.",
+      "paragraphs": [
+        {
+          "text": "Total Stockholders' Equity is currently $18.9B with -14.5% CAGR. Total Stockholders' Equity has declined at a -14.5% CAGR.",
+          "fact_ids": [
+            "stockholders_equity"
+          ]
+        },
+        {
+          "text": "Total Assets is currently $130B with -10.8% CAGR. Total Assets has declined at a -10.8% CAGR.",
+          "fact_ids": [
+            "total_assets"
+          ]
+        },
+        {
+          "text": "Revenue is currently $45.9B with -10.4% CAGR. Revenue has declined at a -10.4% CAGR.",
+          "fact_ids": [
+            "revenue"
+          ]
+        },
+        {
+          "text": "Total Liabilities is currently $111B with -9.9% CAGR. Total Liabilities has declined at a -9.9% CAGR.",
+          "fact_ids": [
+            "total_liabilities"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "risk_factors",
+      "title": "Risk Factors",
+      "rendered_content": "### Watch Items\n- The following governed risk signals are active in the locked annual basis.\n\n- **Anomaly in Net Income:** Significant spike: 1009.9% YoY change (2.5σ from mean) (period: 2023-12-31)\n- **Anomaly in Operating Cash Flow:** Significant spike: 4373.0% YoY change (2.7σ from mean) (period: 2017-12-31)",
+      "paragraphs": [
+        {
+          "text": "- The following governed risk signals are active in the locked annual basis.",
+          "fact_ids": [
+            "revenue",
+            "net_income"
+          ]
+        },
+        {
+          "text": "- **Anomaly in Net Income:** Significant spike: 1009.9% YoY change (2.5σ from mean) (period: 2023-12-31)",
+          "fact_ids": [
+            "revenue",
+            "net_income"
+          ]
+        },
+        {
+          "text": "- **Anomaly in Operating Cash Flow:** Significant spike: 4373.0% YoY change (2.7σ from mean) (period: 2017-12-31)",
+          "fact_ids": [
+            "operating_cash_flow",
+            "fcf"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "analyst_notes",
+      "title": "Analyst Notes",
+      "rendered_content": "### What Stands Out\n- ROE of 45.3% indicates efficient use of shareholder capital.\n\n- Revenue is up 18.5% year over year, showing strong top-line momentum.\n### Watch Items\n- Significant spike: 1009.9% YoY change (2.5σ from mean) (period: 2023-12-31)\n\n- Significant spike: 4373.0% YoY change (2.7σ from mean) (period: 2017-12-31)\n### Analyst Interpretation\n- Current conclusions are anchored to a period-locked annual basis (2025-12-31).\n\n- Prior comparisons use 2024-12-31; metrics without required inputs remain intentionally unfilled.",
+      "paragraphs": [
+        {
+          "text": "- ROE of 45.3% indicates efficient use of shareholder capital.",
+          "fact_ids": [
+            "roe"
+          ]
+        },
+        {
+          "text": "- Revenue is up 18.5% year over year, showing strong top-line momentum.",
+          "fact_ids": [
+            "revenue"
+          ]
+        },
+        {
+          "text": "- Significant spike: 1009.9% YoY change (2.5σ from mean) (period: 2023-12-31)",
+          "fact_ids": [
+            "revenue",
+            "net_income"
+          ]
+        },
+        {
+          "text": "- Significant spike: 4373.0% YoY change (2.7σ from mean) (period: 2017-12-31)",
+          "fact_ids": [
+            "operating_cash_flow",
+            "fcf"
+          ]
+        },
+        {
+          "text": "- Current conclusions are anchored to a period-locked annual basis (2025-12-31).",
+          "fact_ids": [
+            "revenue",
+            "net_income"
+          ]
+        },
+        {
+          "text": "- Prior comparisons use 2024-12-31; metrics without required inputs remain intentionally unfilled.",
+          "fact_ids": [
+            "revenue",
+            "net_income"
+          ]
+        }
+      ]
+    }
+  ]
+}

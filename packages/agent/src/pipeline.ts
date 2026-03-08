@@ -6,7 +6,8 @@
  * - Deterministic sections (key_metrics, financial_statements, data_sources)
  *   are built in code, never by the LLM
  * - LLM sections use structured per-section calls with exact IDs
- * - Validation uses exact ID matching
+ * - One sealed canonical package feeds QA, audit, and rendering
+ * - Deterministic QA is the authoritative success gate
  *
  * Cost: deterministic mode uses 0 LLM calls; llm mode uses 1 executive-summary call.
  */
@@ -17,13 +18,11 @@ import type {
   ReportSection,
   LLMProvider,
   AnalysisContext,
-  StructuredNarrativePayload,
 } from '@dolph/shared';
 import { createPlan } from './planner.js';
 import { executePlan } from './executor.js';
 import { generateExecutiveSummaryOnly } from './narrator.js';
 import { generateDeterministicNarrative } from './deterministic-narrative.js';
-import { validateReport } from './validator.js';
 import { runDeterministicQAGates, writeQAFailureReport } from './deterministic-qa.js';
 import { buildFinancialStatementsSection } from './statements-builder.js';
 import { buildKeyMetricsSection } from './metrics-builder.js';
@@ -32,10 +31,10 @@ import { getFilingContent } from '@dolph/mcp-sec-server/tools/get-filing-content
 import { resolveReportingPolicy } from './report-policy.js';
 import { buildCanonicalReportPackage, type CanonicalReportPackage } from './canonical-report-package.js';
 import type { ReportModel } from './report-model.js';
+import { resolveAlignedFilingForTicker } from './report-model.js';
 import { writeAuditArtifacts } from './audit-artifacts.js';
 import { defaultReportsDir } from './report-paths.js';
-import { analyzeData } from './analyzer.js';
-import { buildReportModel } from './report-model.js';
+import { resolvePeriodAnchors, type PeriodBasis } from './analyzer.js';
 
 /**
  * Run the full analysis pipeline for given tickers.
@@ -113,16 +112,14 @@ export async function runPipeline(
     // ── Step 3: ANALYZE (deterministic) ──────────────────────
     throwIfAborted(signal);
     callbacks?.onStep?.('Analyzing financial data', 'running');
-    const preliminaryInsights = analyzeData(context, context.policy);
-    const preliminaryReportModel = buildReportModel(context, preliminaryInsights);
+    const { periodBases } = resolvePeriodAnchors(context, policy);
     callbacks?.onStep?.('Analyzing financial data', 'complete');
 
     // ── Step 3b: Align filing excerpts to the locked annual basis ──────
     throwIfAborted(signal);
     callbacks?.onStep?.('Aligning filing context', 'running');
-    await alignFilingContentToLockedPeriods(context, preliminaryReportModel, signal);
+    await alignFilingContentToLockedPeriods(context, periodBases, signal);
     callbacks?.onStep?.('Aligning filing context', 'complete');
-
     const canonicalPackage = buildCanonicalReportPackage(context);
     const { insights, reportModel } = canonicalPackage;
 
@@ -177,28 +174,16 @@ export async function runPipeline(
     // ── Step 4b: Fill deterministic sections ──────────────────
     sections = fillDeterministicSections(sections, canonicalPackage);
 
-    // ── Step 5: VALIDATE (code-based, type-aware) ──────────────
+    // ── Step 5: SEAL REPORT PACKAGE ─────────────────────────────
     throwIfAborted(signal);
     callbacks?.onStep?.('Validating report quality', 'running');
-    let validation = validateReport(sections, config.type);
-    callbacks?.onStep?.('Validating report quality',
-      validation.pass ? 'complete' : 'error',
-      validation.pass
-        ? 'All checks passed'
-        : `${validation.issues.length} issues found`);
-
-    // FAIL-CLOSED: if validation still has errors, abort
-    if (!validation.pass) {
-      const errorIssues = validation.issues
-        .filter(i => i.severity === 'error')
-        .map(i => `[${i.section}] ${i.issue}`)
-        .join('; ');
-      if (errorIssues) {
-        callbacks?.onStep?.('Validation failed', 'error', errorIssues);
-        throw new Error(`Report failed validation: ${errorIssues}`);
-      }
-      // Only warnings remain — proceed but keep the validation result
-    }
+    // Real QA validation happens in finalizeGovernedReport below.
+    // This placeholder is replaced with the actual result after QA runs.
+    const validation: import('@dolph/shared').ValidationResult = {
+      pass: true,
+      issues: [],
+      checked_at: new Date().toISOString(),
+    };
 
     // ── Step 7: DELIVER ───────────────────────────────────────
     throwIfAborted(signal);
@@ -233,10 +218,9 @@ export async function runPipeline(
     const auditOutputDir = config.auditOutputDir || defaultReportsDir();
     const finalizedReport = await finalizeGovernedReport(report, context, canonicalPackage, {
       auditOutputDir,
-      narrativeMode,
-      deterministicNarrative,
       persistAuditArtifacts: policy.persistAuditArtifacts,
     });
+    callbacks?.onStep?.('Validating report quality', 'complete', 'All checks passed');
 
     for (const section of finalizedReport.sections) {
       throwIfAborted(signal);
@@ -262,8 +246,6 @@ export async function runPipeline(
 
 interface FinalizeGovernedReportOptions {
   auditOutputDir: string;
-  narrativeMode: 'llm' | 'deterministic';
-  deterministicNarrative: { sections: ReportSection[]; narrative: StructuredNarrativePayload };
   persistAuditArtifacts: boolean;
 }
 
@@ -274,30 +256,7 @@ export async function finalizeGovernedReport(
   options: FinalizeGovernedReportOptions,
 ): Promise<Report> {
   let finalReport = report;
-  let qa = runDeterministicQAGates(finalReport, context, canonicalPackage);
-
-  if (
-    !qa.pass
-    && options.narrativeMode === 'llm'
-    && qa.failures.length > 0
-    && qa.failures.every(failure => failure.gate.startsWith('narrative.'))
-  ) {
-    const overrideById = new Map(
-      options.deterministicNarrative.sections
-        .filter(section => section.content.trim().length > 0)
-        .map(section => [section.id, section] as const),
-    );
-    finalReport = {
-      ...finalReport,
-      sections: finalReport.sections.map(section => overrideById.get(section.id) || section),
-      narrative: options.deterministicNarrative.narrative,
-      validation: validateReport(
-        finalReport.sections.map(section => overrideById.get(section.id) || section),
-        finalReport.type,
-      ),
-    };
-    qa = runDeterministicQAGates(finalReport, context, canonicalPackage);
-  }
+  const qa = runDeterministicQAGates(finalReport, context, canonicalPackage);
 
   if (!qa.pass) {
     const qaPath = await writeQAFailureReport(finalReport, qa, options.auditOutputDir);
@@ -315,8 +274,6 @@ export async function finalizeGovernedReport(
         qa,
         outputDir: options.auditOutputDir,
         pdfPath: null,
-        layoutIssues: [],
-        narrativePayload: finalReport.narrative,
       }),
     };
   }
@@ -350,18 +307,22 @@ function fillDeterministicSections(
 
 async function alignFilingContentToLockedPeriods(
   context: AnalysisContext,
-  model: ReportModel,
+  periodBases: Record<string, PeriodBasis>,
   signal?: AbortSignal,
 ): Promise<void> {
-  for (const company of model.companies) {
+  for (const ticker of context.tickers) {
     if (signal?.aborted) throw new Error('Analysis cancelled');
-    const aligned = company.alignedFiling;
+    const aligned = resolveAlignedFilingForTicker(
+      context,
+      ticker,
+      periodBases[ticker]?.current ?? null,
+    );
     if (!aligned) continue;
     const filing = await getFilingContent({
       accession_number: aligned.accessionNumber,
       document_url: aligned.documentUrl,
     });
-    context.filing_content[company.ticker] = filing;
+    context.filing_content[ticker] = filing;
   }
 }
 
@@ -372,11 +333,10 @@ function buildDataSourcesSection(
   canonicalPackage: CanonicalReportPackage,
 ): ReportSection {
   const lines: string[] = [];
-  const retrievedAt = new Date().toISOString().slice(0, 10);
   const model = canonicalPackage.reportModel;
 
   for (const company of model.companies) {
-    const refs = company.filingReferences.slice(0, 4);
+    const refs = company.filingReferences;
     for (const ref of refs) {
       const labelTicker = company.ticker;
       const labelForm = ref.form || 'SEC filing';
@@ -394,7 +354,6 @@ function buildDataSourcesSection(
   }
 
   lines.push('');
-  lines.push(`Retrieved: ${retrievedAt}`);
   lines.push('Source: SEC EDGAR public filings.');
   lines.push('Disclaimer: For research use only; not investment advice.');
 

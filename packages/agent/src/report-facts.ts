@@ -12,6 +12,33 @@ const CASH_OUTFLOW_METRICS = new Set([
 
 export const SHARE_CHANGE_ALERT_THRESHOLD = 1.5;
 
+export const BALANCE_SHEET_CASH_FAMILY_METRICS = [
+  'cash_and_equivalents',
+  'cash_and_equivalents_and_restricted_cash',
+  'restricted_cash',
+  'cash_and_equivalents_and_short_term_investments',
+  'short_term_investments',
+  'marketable_securities',
+] as const;
+
+export type BalanceSheetCashFamilyMetric = typeof BALANCE_SHEET_CASH_FAMILY_METRICS[number];
+
+const CASH_FAMILY_BROADER_ALTERNATIVES: Record<BalanceSheetCashFamilyMetric, BalanceSheetCashFamilyMetric[]> = {
+  cash_and_equivalents: [
+    'cash_and_equivalents_and_restricted_cash',
+    'cash_and_equivalents_and_short_term_investments',
+  ],
+  cash_and_equivalents_and_restricted_cash: [],
+  restricted_cash: [
+    'cash_and_equivalents_and_restricted_cash',
+  ],
+  cash_and_equivalents_and_short_term_investments: [],
+  short_term_investments: [
+    'cash_and_equivalents_and_short_term_investments',
+  ],
+  marketable_securities: [],
+};
+
 export type CanonicalSourceKind = 'xbrl' | 'statement' | 'derived' | 'adjusted' | 'unknown';
 
 export interface CanonicalFactSource {
@@ -59,6 +86,40 @@ export function normalizeMetricValue(metric: string, value: number): number {
   return value;
 }
 
+export function hasCashFamilyValue(
+  values: Record<string, number> | undefined,
+  metric: BalanceSheetCashFamilyMetric,
+): boolean {
+  const raw = values?.[metric];
+  return raw !== undefined && isFinite(raw);
+}
+
+export function hasBroaderCashFamilyAlternative(
+  values: Record<string, number> | undefined,
+  metric: string,
+): boolean {
+  if (!BALANCE_SHEET_CASH_FAMILY_METRICS.includes(metric as BalanceSheetCashFamilyMetric)) return false;
+  const alternatives = CASH_FAMILY_BROADER_ALTERNATIVES[metric as BalanceSheetCashFamilyMetric] || [];
+  return alternatives.some(candidate => hasCashFamilyValue(values, candidate));
+}
+
+export function hasCashPresentationAlternative(
+  values: Record<string, number> | undefined,
+  metric: string,
+): boolean {
+  if (hasBroaderCashFamilyAlternative(values, metric)) return true;
+  if (metric !== 'cash_and_equivalents') return false;
+  const endingCash = values?.['cash_ending'];
+  if (endingCash === undefined || !isFinite(endingCash)) return false;
+  return presentCashFamilyMetrics(values).length === 0;
+}
+
+export function presentCashFamilyMetrics(
+  values: Record<string, number> | undefined,
+): BalanceSheetCashFamilyMetric[] {
+  return BALANCE_SHEET_CASH_FAMILY_METRICS.filter(metric => hasCashFamilyValue(values, metric));
+}
+
 export function applyDerivedPeriodValues(
   values: Record<string, number>,
   sources?: Record<string, CanonicalFactSource>,
@@ -69,16 +130,30 @@ export function applyDerivedPeriodValues(
   const shortTermDebt = finite(values['short_term_debt']);
   const totalDebt = finite(values['total_debt']);
 
-  if (totalDebt === null && (longTermDebt !== null || shortTermDebt !== null)) {
-    values['total_debt'] = (longTermDebt ?? 0) + (shortTermDebt ?? 0);
+  if (longTermDebt !== null && shortTermDebt !== null) {
+    const standardizedTotalDebt = longTermDebt + shortTermDebt;
+    if (totalDebt === null || materiallyDiffers(totalDebt, standardizedTotalDebt, 0.02, 1_000_000)) {
+      values['total_debt'] = standardizedTotalDebt;
+      if (sources) {
+        sources['total_debt'] = {
+          kind: 'derived',
+          ticker,
+          metric: 'total_debt',
+          period,
+          reportedValue: totalDebt ?? undefined,
+          detail: totalDebt === null
+            ? 'Derived as long_term_debt + short_term_debt because both debt components were reported.'
+            : 'Standardized as long_term_debt + short_term_debt because the reported total debt concept did not reconcile to the reported debt components.',
+        };
+      }
+    }
+  } else if (totalDebt === null && (longTermDebt !== null || shortTermDebt !== null)) {
+    // Do not guess a total debt value from a single reported component.
+    // If only one side of the debt split is reported, the standardized total
+    // debt metric stays unavailable until either the other component or a
+    // usable total debt concept is present.
     if (sources) {
-      sources['total_debt'] = {
-        kind: 'derived',
-        ticker,
-        metric: 'total_debt',
-        period,
-        detail: 'Derived as long_term_debt + short_term_debt.',
-      };
+      delete sources['total_debt'];
     }
   }
 

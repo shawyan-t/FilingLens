@@ -397,6 +397,21 @@
               }
             },
             {
+              "key": "marketable_securities",
+              "label": "Marketable Securities",
+              "unit": "USD",
+              "current": 5013000000,
+              "prior": 1345000000,
+              "change": 2.7271375464684016,
+              "currentDisplay": "$5.01B",
+              "priorDisplay": "$1.34B",
+              "changeDisplay": "272.7%",
+              "availability": {
+                "current": "reported",
+                "prior": "reported"
+              }
+            },
+            {
               "key": "long_term_debt",
               "label": "Long-Term Debt",
               "unit": "USD",
@@ -612,6 +627,21 @@
               "currentDisplay": "$7.71B",
               "priorDisplay": "$3.04B",
               "changeDisplay": "153.5%",
+              "availability": {
+                "current": "reported",
+                "prior": "reported"
+              }
+            },
+            {
+              "key": "cash_ending",
+              "label": "Cash at End of Period (cash-flow statement)",
+              "unit": "USD",
+              "current": 5556000000,
+              "prior": 3811000000,
+              "change": 0.45788506953555497,
+              "currentDisplay": "$5.56B",
+              "priorDisplay": "$3.81B",
+              "changeDisplay": "45.8%",
               "availability": {
                 "current": "reported",
                 "prior": "reported"
@@ -899,6 +929,21 @@
               }
             },
             {
+              "key": "marketable_securities",
+              "label": "Marketable Securities",
+              "unit": "USD",
+              "current": 5013000000,
+              "prior": 1345000000,
+              "change": 2.7271375464684016,
+              "currentDisplay": "$5.01B",
+              "priorDisplay": "$1.34B",
+              "changeDisplay": "272.7%",
+              "availability": {
+                "current": "reported",
+                "prior": "reported"
+              }
+            },
+            {
               "key": "long_term_debt",
               "label": "Long-Term Debt",
               "unit": "USD",
@@ -1114,6 +1159,21 @@
               "currentDisplay": "$7.71B",
               "priorDisplay": "$3.04B",
               "changeDisplay": "153.5%",
+              "availability": {
+                "current": "reported",
+                "prior": "reported"
+              }
+            },
+            {
+              "key": "cash_ending",
+              "label": "Cash at End of Period (cash-flow statement)",
+              "unit": "USD",
+              "current": 5556000000,
+              "prior": 3811000000,
+              "change": 0.45788506953555497,
+              "currentDisplay": "$5.56B",
+              "priorDisplay": "$3.81B",
+              "changeDisplay": "45.8%",
               "availability": {
                 "current": "reported",
                 "prior": "reported"
@@ -2693,6 +2753,21 @@
               }
             },
             {
+              "key": "cash_ending",
+              "label": "Cash at End of Period (cash-flow statement)",
+              "unit": "USD",
+              "current": 10605000000,
+              "prior": 8589000000,
+              "change": 0.23471882640586794,
+              "currentDisplay": "$10.6B",
+              "priorDisplay": "$8.59B",
+              "changeDisplay": "23.5%",
+              "availability": {
+                "current": "reported",
+                "prior": "reported"
+              }
+            },
+            {
               "key": "capex",
               "label": "Capital Expenditures",
               "unit": "USD",
@@ -3204,6 +3279,21 @@
               "currentDisplay": "$103B",
               "priorDisplay": "$64.1B",
               "changeDisplay": "60.3%",
+              "availability": {
+                "current": "reported",
+                "prior": "reported"
+              }
+            },
+            {
+              "key": "cash_ending",
+              "label": "Cash at End of Period (cash-flow statement)",
+              "unit": "USD",
+              "current": 10605000000,
+              "prior": 8589000000,
+              "change": 0.23471882640586794,
+              "currentDisplay": "$10.6B",
+              "priorDisplay": "$8.59B",
+              "changeDisplay": "23.5%",
               "availability": {
                 "current": "reported",
                 "prior": "reported"

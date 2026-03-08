@@ -297,40 +297,177 @@ describe('report governance hardening', () => {
         qa,
         outputDir: baseDir,
         pdfPath,
-        layoutIssues: [],
       });
 
-      const policyManifest = JSON.parse(
-        await readFile(manifest.files['policy-manifest.json']!, 'utf8'),
-      ) as { policy: { comparisonBasisMode: string } };
-      const comparisonManifest = JSON.parse(
-        await readFile(manifest.files['comparison-basis-manifest.json']!, 'utf8'),
-      ) as { requested_basis_mode: string; effective_basis_mode: string };
       const qaManifest = JSON.parse(
         await readFile(manifest.files['qa-result.json']!, 'utf8'),
       ) as { status: string; pass: boolean };
-      const renderManifest = JSON.parse(
-        await readFile(manifest.files['render-manifest.json']!, 'utf8'),
-      ) as { pdf_rendered: boolean; pdf: string | null };
-      const layoutManifest = JSON.parse(
-        await readFile(manifest.files['layout-qa-report.json']!, 'utf8'),
-      ) as { status: string; issues: unknown[] | null };
 
-      assert.equal(policyManifest.policy.comparisonBasisMode, 'overlap_normalized');
-      assert.equal(comparisonManifest.requested_basis_mode, 'overlap_normalized');
-      assert.equal(comparisonManifest.effective_basis_mode, 'overlap_normalized');
       assert.equal(qaManifest.status, 'pass');
       assert.equal(qaManifest.pass, true);
-      assert.equal(renderManifest.pdf_rendered, true);
-      assert.equal(renderManifest.pdf, 'AMG.pdf');
-      assert.equal(layoutManifest.status, 'completed');
+      assert.ok(manifest.files['qa-result.json']);
+      assert.ok(manifest.files['source-manifest.json']);
       assert.ok(manifest.files['canonical-ledger.json']);
-      assert.ok(manifest.files['derived-metrics-manifest.json']);
-      assert.ok(manifest.files['warnings-manifest.json']);
-      assert.ok(manifest.files['layout-qa-report.json']);
+      // Only 3 artifacts should exist
+      assert.equal(Object.keys(manifest.files).length, 3);
     } finally {
       await rm(baseDir, { recursive: true, force: true });
     }
+  });
+
+  it('surfaces broader reported cash-family lines without treating narrow cash as missing', () => {
+    const context = makeContext('SKIN');
+    const balance = context.statements['SKIN']!.find(statement => statement.statement_type === 'balance_sheet')!;
+    const cashFlow = context.statements['SKIN']!.find(statement => statement.statement_type === 'cash_flow')!;
+
+    delete balance.periods[0]!.data['cash_and_equivalents'];
+    balance.periods[0]!.data['cash_and_equivalents_and_restricted_cash'] = 370_063_000;
+    balance.periods[1]!.data['cash_and_equivalents'] = 523_025_000;
+    cashFlow.periods[0]!.data['cash_ending'] = 370_063_000;
+
+    context.facts['SKIN'] = makeFacts('SKIN', {
+      '2025-12-31': {
+        revenue: 2_070_000_000,
+        net_income: 716_600_000,
+        operating_income: 900_000_000,
+        operating_cash_flow: 973_200_000,
+        capex: -6_100_000,
+        stockholders_equity: 4_420_000_000,
+        shares_outstanding: 170_000_000,
+        eps_diluted: 4.21,
+        cash_and_equivalents_and_restricted_cash: 370_063_000,
+        cash_ending: 370_063_000,
+      },
+      '2024-12-31': {
+        revenue: 1_980_000_000,
+        net_income: 650_000_000,
+        operating_income: 830_000_000,
+        operating_cash_flow: 900_000_000,
+        capex: -7_000_000,
+        stockholders_equity: 4_250_000_000,
+        shares_outstanding: 171_000_000,
+        eps_diluted: 3.8,
+        cash_and_equivalents: 523_025_000,
+        cash_ending: 523_025_000,
+      },
+    });
+
+    const insights = analyzeData(context, context.policy || resolveReportingPolicy({
+      tickers: ['SKIN'],
+      type: 'single',
+      maxRetries: 1,
+      maxValidationLoops: 0,
+    }));
+    const reportModel = buildReportModel(context, insights);
+    const company = reportModel.companies[0]!;
+    const balanceTable = company.statementTables.find(table => table.statementType === 'balance_sheet')!;
+
+    assert.ok(balanceTable.rows.some(row => row.key === 'cash_and_equivalents_and_restricted_cash'));
+    assert.equal(balanceTable.rows.some(row => row.key === 'cash_and_equivalents'), false);
+    assert.equal(
+      insights['SKIN']!.redFlags.some(flag => /Cash & Equivalents/i.test(flag.detail)),
+      false,
+    );
+  });
+
+  it('surfaces cash-flow ending cash when no current balance-sheet cash-family line is available', () => {
+    const context = makeContext('SKIN');
+    const balance = context.statements['SKIN']!.find(statement => statement.statement_type === 'balance_sheet')!;
+    const cashFlow = context.statements['SKIN']!.find(statement => statement.statement_type === 'cash_flow')!;
+
+    delete balance.periods[0]!.data['cash_and_equivalents'];
+    delete balance.periods[0]!.data['cash_and_equivalents_and_restricted_cash'];
+    cashFlow.periods[0]!.data['cash_ending'] = 370_063_000;
+
+    context.facts['SKIN'] = makeFacts('SKIN', {
+      '2024-12-31': {
+        revenue: 334_100_000,
+        net_income: -29_100_000,
+        operating_income: -67_800_000,
+        operating_cash_flow: 16_134_000,
+        capex: -1_303_000,
+        stockholders_equity: 51_800_000,
+        shares_outstanding: 140_000_000,
+        eps_diluted: -0.36,
+        cash_ending: 370_063_000,
+      },
+      '2023-12-31': {
+        revenue: 420_000_000,
+        net_income: -120_000_000,
+        operating_income: -140_000_000,
+        operating_cash_flow: 22_000_000,
+        capex: -4_000_000,
+        stockholders_equity: 200_000_000,
+        shares_outstanding: 138_000_000,
+        eps_diluted: -0.87,
+        cash_and_equivalents: 523_025_000,
+        cash_ending: 523_025_000,
+      },
+    });
+
+    const insights = analyzeData(context, context.policy || resolveReportingPolicy({
+      tickers: ['SKIN'],
+      type: 'single',
+      maxRetries: 1,
+      maxValidationLoops: 0,
+    }));
+    const reportModel = buildReportModel(context, insights);
+    const company = reportModel.companies[0]!;
+    const balanceTable = company.statementTables.find(table => table.statementType === 'balance_sheet')!;
+
+    assert.equal(balanceTable.rows.some(row => row.key === 'cash_and_equivalents'), false);
+    assert.equal(
+      company.metricsByLabel.get('Cash at End of Period (cash-flow statement)')?.currentDisplay,
+      '$370M',
+    );
+  });
+
+  it('suppresses duplicate broader cash-family metrics when they exactly mirror cash and equivalents', () => {
+    const context = makeContext('NVDA');
+    const balance = context.statements['NVDA']!.find(statement => statement.statement_type === 'balance_sheet')!;
+    balance.periods[0]!.data['cash_and_equivalents_and_restricted_cash'] = 600_000_000;
+    balance.periods[1]!.data['cash_and_equivalents_and_restricted_cash'] = 550_000_000;
+
+    context.facts['NVDA'] = makeFacts('NVDA', {
+      '2025-12-31': {
+        revenue: 2_070_000_000,
+        net_income: 716_600_000,
+        operating_income: 900_000_000,
+        operating_cash_flow: 973_200_000,
+        capex: -6_100_000,
+        stockholders_equity: 4_420_000_000,
+        shares_outstanding: 170_000_000,
+        eps_diluted: 4.21,
+        cash_and_equivalents: 600_000_000,
+        cash_and_equivalents_and_restricted_cash: 600_000_000,
+      },
+      '2024-12-31': {
+        revenue: 1_980_000_000,
+        net_income: 650_000_000,
+        operating_income: 830_000_000,
+        operating_cash_flow: 900_000_000,
+        capex: -7_000_000,
+        stockholders_equity: 4_250_000_000,
+        shares_outstanding: 171_000_000,
+        eps_diluted: 3.8,
+        cash_and_equivalents: 550_000_000,
+        cash_and_equivalents_and_restricted_cash: 550_000_000,
+      },
+    });
+
+    const insights = analyzeData(context, context.policy || resolveReportingPolicy({
+      tickers: ['NVDA'],
+      type: 'single',
+      maxRetries: 1,
+      maxValidationLoops: 0,
+    }));
+    const reportModel = buildReportModel(context, insights);
+    const company = reportModel.companies[0]!;
+    const balanceTable = company.statementTables.find(table => table.statementType === 'balance_sheet')!;
+
+    assert.equal(company.metricsByLabel.has('Cash, Cash Equivalents & Restricted Cash'), false);
+    assert.equal(balanceTable.rows.some(row => row.key === 'cash_and_equivalents_and_restricted_cash'), false);
+    assert.equal(company.metricsByLabel.get('Cash & Equivalents')?.currentDisplay, '$600M');
   });
 
   it('writes a governed audit package before PDF rendering occurs', async () => {
@@ -386,84 +523,13 @@ describe('report governance hardening', () => {
         qa,
         outputDir: baseDir,
         pdfPath: null,
-        layoutIssues: [],
       });
-      const renderManifest = JSON.parse(
-        await readFile(manifest.files['render-manifest.json']!, 'utf8'),
-      ) as { pdf_rendered: boolean; pdf: string | null };
       const qaManifest = JSON.parse(
         await readFile(manifest.files['qa-result.json']!, 'utf8'),
       ) as { status: string; pass: boolean };
-      const layoutManifest = JSON.parse(
-        await readFile(manifest.files['layout-qa-report.json']!, 'utf8'),
-      ) as { status: string; issues: unknown[] | null };
-      assert.equal(renderManifest.pdf_rendered, false);
-      assert.equal(renderManifest.pdf, null);
       assert.equal(qaManifest.status, 'pass');
       assert.equal(qaManifest.pass, true);
-      assert.equal(layoutManifest.status, 'not_run');
-      assert.equal(layoutManifest.issues, null);
-    } finally {
-      await rm(baseDir, { recursive: true, force: true });
-    }
-  });
-
-  it('refuses to write success-side audit artifacts without a structured narrative payload', async () => {
-    const context = makeContext('AMG');
-    context.policy = resolveReportingPolicy({
-      tickers: ['AMG'],
-      type: 'single',
-      maxRetries: 1,
-      maxValidationLoops: 0,
-    });
-    const insights = analyzeData(context, context.policy);
-    const reportModel = buildReportModel(context, insights);
-
-    const report: Report = {
-      id: 'missing-narrative-audit-test',
-      tickers: ['AMG'],
-      type: 'single',
-      policy: context.policy,
-      generated_at: '2026-03-07T00:00:00.000Z',
-      sections: [],
-      sources: [],
-      validation: { pass: true, issues: [], checked_at: '2026-03-07T00:00:00.000Z' },
-      metadata: {
-        llm_calls: 0,
-        total_duration_ms: 1,
-        data_points_used: 10,
-        policy_mode: context.policy.mode,
-      },
-    };
-
-    const qa = {
-      pass: true,
-      failures: [],
-      periodBasis: {
-        AMG: {
-          current: reportModel.companies[0]?.snapshotPeriod || null,
-          prior: reportModel.companies[0]?.priorPeriod || null,
-        },
-      },
-      mappingFixes: [],
-      recomputedMetrics: {},
-    };
-
-    const baseDir = await mkdtemp(join(tmpdir(), 'dolph-audit-narrative-'));
-    try {
-      await assert.rejects(
-        writeAuditArtifacts({
-          report,
-          context,
-          insights,
-          reportModel,
-          qa,
-          outputDir: baseDir,
-          pdfPath: null,
-          layoutIssues: [],
-        }),
-        /structured narrative payload/i,
-      );
+      assert.equal(Object.keys(manifest.files).length, 3);
     } finally {
       await rm(baseDir, { recursive: true, force: true });
     }
@@ -521,8 +587,6 @@ describe('report governance hardening', () => {
       await assert.rejects(
         finalizeGovernedReport(report, context, canonicalPackage, {
           auditOutputDir: baseDir,
-          narrativeMode: 'deterministic',
-          deterministicNarrative: deterministic,
           persistAuditArtifacts: true,
         }),
         /Report failed deterministic QA:/,
@@ -534,7 +598,7 @@ describe('report governance hardening', () => {
     }
   });
 
-  it('repairs invalid LLM narrative before persistence so report sections and narrative payload stay identical', async () => {
+  it('fails closed when LLM narrative is invalid instead of repairing it after package creation', async () => {
     const context = makeContext('AMG');
     context.policy = resolveReportingPolicy({
       tickers: ['AMG'],
@@ -584,21 +648,12 @@ describe('report governance hardening', () => {
 
     const baseDir = await mkdtemp(join(tmpdir(), 'dolph-pipeline-repair-'));
     try {
-      const finalized = await finalizeGovernedReport(report, context, canonicalPackage, {
-        auditOutputDir: baseDir,
-        narrativeMode: 'llm',
-        deterministicNarrative: deterministic,
-        persistAuditArtifacts: true,
-      });
-      const executiveSection = finalized.sections.find(section => section.id === 'executive_summary');
-      const executiveNarrative = finalized.narrative?.sections.find(section => section.id === 'executive_summary');
-      assert.equal(
-        executiveSection?.content,
-        executiveNarrative?.paragraphs.map(paragraph => paragraph.text).join('\n\n'),
-      );
-      assert.ok(
-        executiveNarrative?.paragraphs.every(paragraph => paragraph.fact_ids.length > 0),
-        'expected repaired narrative payload to retain fact bindings',
+      await assert.rejects(
+        finalizeGovernedReport(report, context, canonicalPackage, {
+          auditOutputDir: baseDir,
+          persistAuditArtifacts: true,
+        }),
+        /Report failed deterministic QA:/,
       );
     } finally {
       await rm(baseDir, { recursive: true, force: true });
@@ -771,5 +826,112 @@ describe('report governance hardening', () => {
         assert.ok(paragraph.fact_ids.length > 0, `expected fact bindings for ${section.id}`);
       }
     }
+  });
+
+  it('locks statement tables to the fixed current/prior periods and omits raw statement extra rows', () => {
+    const context = makeContext('GE');
+    const income = context.statements['GE']!.find(statement => statement.statement_type === 'income')!;
+    income.periods.push({
+      period: '2024-09-30',
+      filed: '2025-11-01',
+      form: '10-K',
+      fiscal_year: 2024,
+      fiscal_period: 'Q3',
+      data: {
+        revenue: 999_000_000,
+        net_income: 111_000_000,
+        mystery_extra_line: 123_456,
+      },
+    });
+    income.periods[0]!.data['mystery_extra_line'] = 222_222;
+
+    context.policy = resolveReportingPolicy({
+      tickers: ['GE'],
+      type: 'single',
+      maxRetries: 1,
+      maxValidationLoops: 0,
+    });
+
+    const insights = analyzeData(context, context.policy);
+    const reportModel = buildReportModel(context, insights);
+    const company = reportModel.companies[0]!;
+    const incomeTable = company.statementTables.find(table => table.statementType === 'income')!;
+
+    assert.deepEqual(incomeTable.periods, ['2025-12-31', '2024-12-31']);
+    assert.equal(incomeTable.rows.some(row => row.key === 'mystery_extra_line'), false);
+  });
+
+  it('applies one fixed comparison row contract across peers regardless of issuer coverage', () => {
+    const first = makeContext('AAA');
+    const second = makeContext('BBB');
+
+    for (const statement of second.statements['BBB'] || []) {
+      for (const period of statement.periods) {
+        delete period.data['current_assets'];
+        delete period.data['current_liabilities'];
+        delete period.data['gross_profit'];
+      }
+    }
+
+    const context: AnalysisContext = {
+      tickers: ['AAA', 'BBB'],
+      type: 'comparison',
+      plan: { type: 'comparison', tickers: ['AAA', 'BBB'], steps: [] },
+      results: [],
+      filings: {},
+      filing_content: {},
+      facts: { ...first.facts, ...second.facts },
+      statements: { ...first.statements, ...second.statements },
+      ratios: { ...first.ratios, ...second.ratios },
+      trends: { ...first.trends, ...second.trends },
+      policy: resolveReportingPolicy({
+        tickers: ['AAA', 'BBB'],
+        type: 'comparison',
+        maxRetries: 1,
+        maxValidationLoops: 0,
+      }),
+    };
+
+    const insights = analyzeData(context, context.policy);
+    const reportModel = buildReportModel(context, insights);
+    const expected = reportModel.comparisonRowGroups.map(group => ({
+      title: group.title,
+      rowLabels: group.rowLabels,
+    }));
+
+    for (const company of reportModel.companies) {
+      assert.deepEqual(
+        company.comparisonGroups.map(group => ({
+          title: group.title,
+          rowLabels: group.rows.map(row => row.label),
+        })),
+        expected,
+      );
+    }
+
+    const bbbLiquidity = reportModel.companiesByTicker.get('BBB')!.comparisonGroups.find(group => group.title === 'Liquidity & Leverage')!;
+    assert.ok(bbbLiquidity.rows.some(row => row.label === 'Current Assets'));
+    assert.equal(
+      reportModel.companiesByTicker.get('BBB')!.metricsByLabel.get('Current Assets')?.currentDisplay,
+      'Unavailable',
+    );
+  });
+
+  it('builds fixed appendix support notes from the package contract', () => {
+    const context = makeContext('AMG');
+    context.policy = resolveReportingPolicy({
+      tickers: ['AMG'],
+      type: 'single',
+      maxRetries: 1,
+      maxValidationLoops: 0,
+    });
+
+    const insights = analyzeData(context, context.policy);
+    const reportModel = buildReportModel(context, insights);
+    const notes = reportModel.companies[0]!.appendixSupportNotes;
+
+    assert.ok(notes.some(note => /central statement mapping catalog/i.test(note)));
+    assert.ok(notes.some(note => /locked annual appendix basis/i.test(note)));
+    assert.equal(notes.some(note => /Derived or reconciled appendix rows include/i.test(note)), false);
   });
 });

@@ -9,6 +9,7 @@ import type { ReportSection } from '@dolph/shared';
 import type { CanonicalReportPackage } from './canonical-report-package.js';
 import type { CompanyReportModel, ReportModel } from './report-model.js';
 const FRONT_TABLE_MAX_ROWS = 8;
+const MAX_BASIS_DISCLOSURES = 4;
 
 /**
  * Build the Key Metrics section deterministically.
@@ -54,7 +55,7 @@ function buildSingleMetricsTable(
     }
     rows.push('');
   }
-  rows.push('The dashboard is grouped to surface headline signals first, then supporting detail.');
+  rows.push('The dashboard follows the fixed metric contract; unavailable cells remain explicit instead of being hidden by issuer-specific row logic.');
   for (const disclosure of buildMetricBasisDisclosures(company)) {
     rows.push(`*${disclosure}*`);
   }
@@ -90,6 +91,7 @@ function buildComparisonMetricsTable(
 
   const rows: string[] = [];
   rows.push(companyComparisonDisclosure(model));
+  rows.push('*The comparison table follows the fixed metric contract; rows stay in one governed order and unavailable cells remain explicit.*');
   for (const disclosure of mergeMetricBasisDisclosures(model.companies)) {
     rows.push(`*${disclosure}*`);
   }
@@ -100,10 +102,13 @@ function buildComparisonMetricsTable(
   rows.push(`| Snapshot Period | ${periodValues.join(' | ')} |`);
   rows.push('');
 
-  const referenceGroups = mergeComparisonGroups(model.companies.map(company => company.comparisonGroups));
-  for (const section of referenceGroups) {
-    if (section.rows.length === 0) continue;
-    const chunks = chunk(section.rows, FRONT_TABLE_MAX_ROWS);
+  for (const section of model.comparisonRowGroups) {
+    const companyRows = model.companies.map(company => {
+      const group = company.comparisonGroups.find(candidate => candidate.title === section.title);
+      return new Map((group?.rows || []).map(row => [row.label, row]));
+    });
+    if (section.rowLabels.length === 0) continue;
+    const chunks = chunk(section.rowLabels, FRONT_TABLE_MAX_ROWS);
     for (let i = 0; i < chunks.length; i++) {
       const title = chunks.length === 1 ? section.title : `${section.title} (${i + 1}/${chunks.length})`;
       rows.push(`### ${title}`);
@@ -111,9 +116,9 @@ function buildComparisonMetricsTable(
       rows.push(`| Metric | ${tickers.join(' | ')} |`);
       rows.push(`|:---|${tickers.map(() => '---:').join('|')}|`);
 
-      for (const metric of chunks[i]!) {
-        const values = model.companies.map(company => company.metricsByLabel.get(metric.label)?.currentDisplay || 'Unavailable');
-        rows.push(`| ${metric.label} | ${values.join(' | ')} |`);
+      for (const label of chunks[i]!) {
+        const values = companyRows.map(metricMap => metricMap.get(label)?.currentDisplay || 'Unavailable');
+        rows.push(`| ${label} | ${values.join(' | ')} |`);
       }
       rows.push('');
     }
@@ -134,7 +139,7 @@ function buildMetricBasisDisclosures(company: CompanyReportModel): string[] {
     seen.add(text);
     lines.push(text);
   }
-  return lines.slice(0, 4);
+  return lines.slice(0, MAX_BASIS_DISCLOSURES);
 }
 
 function mergeMetricBasisDisclosures(
@@ -149,7 +154,7 @@ function mergeMetricBasisDisclosures(
       lines.push(disclosure);
     }
   }
-  return lines.slice(0, 5);
+  return lines.slice(0, MAX_BASIS_DISCLOSURES);
 }
 
 function companyComparisonDisclosure(model: ReportModel): string {
@@ -180,26 +185,4 @@ function chunk<T>(arr: T[], size: number): T[][] {
     out.push(arr.slice(i, i + size));
   }
   return out;
-}
-
-function mergeComparisonGroups(
-  groupsByCompany: Array<Array<{ title: string; rows: Array<{ label: string }> }>>,
-): Array<{ title: string; rows: Array<{ label: string }> }> {
-  const merged = new Map<string, Map<string, { label: string }>>();
-  for (const companyGroups of groupsByCompany) {
-    for (const group of companyGroups) {
-      let bucket = merged.get(group.title);
-      if (!bucket) {
-        bucket = new Map();
-        merged.set(group.title, bucket);
-      }
-      for (const row of group.rows) {
-        if (!bucket.has(row.label)) bucket.set(row.label, { label: row.label });
-      }
-    }
-  }
-  return Array.from(merged.entries()).map(([title, rows]) => ({
-    title,
-    rows: Array.from(rows.values()).sort((a, b) => a.label.localeCompare(b.label)),
-  }));
 }

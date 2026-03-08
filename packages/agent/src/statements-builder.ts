@@ -46,16 +46,9 @@ export function buildFinancialStatementsSection(
       parts.push(`*Financial statement data not available for ${company.ticker}.*`);
       parts.push('');
     } else {
-      const basisNotes = company.metrics
-        .filter(metric => metric.basis)
-        .map(metric => metric.basis!)
-        .filter((basis, idx, arr) => arr.findIndex(other => other.displayName === basis.displayName && other.basis === basis.basis && other.disclosureText === basis.disclosureText && other.note === basis.note) === idx)
-        .slice(0, 4)
-        .map(basis => `*${basis.displayName}: ${basis.disclosureText || basis.note || basis.basis}*`);
-      for (const note of basisNotes) {
-        parts.push(note);
+      for (const note of company.appendixSupportNotes) {
+        parts.push(`*${note}*`);
       }
-      parts.push('*Rows labeled "(derived)" are deterministic inferences from filing-linked data; "(reported/reconciled)" rows blend reported lines with governed reconciliation logic.*');
       parts.push('');
     }
 

@@ -1,0 +1,547 @@
+{
+  "KIM": {
+    "2025-12-31": {
+      "revenue": 2140116000,
+      "operating_expenses": 1431956000,
+      "operating_income": 770823000,
+      "net_income": 584741000,
+      "shares_outstanding": 674093047,
+      "weighted_avg_shares_diluted": 675279000,
+      "income_tax_expense": 1046000,
+      "total_assets": 19688250000,
+      "total_liabilities": 9120372000,
+      "stockholders_equity": 10543372000,
+      "cash_and_equivalents": 211648000,
+      "cash_and_equivalents_and_restricted_cash": 212794000,
+      "restricted_cash": 1146000,
+      "long_term_debt": 7718700000,
+      "retained_earnings": -528730000,
+      "accumulated_other_comprehensive_income": -8792000,
+      "operating_cash_flow": 1120015000,
+      "capex": -18400000,
+      "investing_cash_flow": -376815000,
+      "financing_cash_flow": -1220137000,
+      "dividends_paid": -711745000,
+      "share_repurchases": -120329000,
+      "depreciation_and_amortization": 627090000,
+      "net_change_in_cash": -476937000,
+      "cash_ending": 212794000,
+      "total_debt": 7718700000,
+      "free_cash_flow": 1101615000
+    },
+    "2024-12-31": {
+      "revenue": 2037014000,
+      "operating_expenses": 1409200000,
+      "operating_income": 629088000,
+      "net_income": 410785000,
+      "shares_outstanding": 679493522,
+      "weighted_avg_shares_diluted": 672136000,
+      "income_tax_expense": 25417000,
+      "total_assets": 20309896000,
+      "total_liabilities": 9464107000,
+      "stockholders_equity": 10797912000,
+      "cash_and_equivalents": 688622000,
+      "cash_and_equivalents_and_restricted_cash": 689731000,
+      "restricted_cash": 1109000,
+      "long_term_debt": 7964700000,
+      "retained_earnings": -398792000,
+      "accumulated_other_comprehensive_income": 11038000,
+      "operating_cash_flow": 1005621000,
+      "investing_cash_flow": -318541000,
+      "financing_cash_flow": -781106000,
+      "dividends_paid": -682845000,
+      "share_repurchases": 0,
+      "depreciation_and_amortization": 603685000,
+      "net_change_in_cash": -94026000,
+      "cash_ending": 689731000,
+      "total_debt": 7964700000
+    },
+    "2023-12-31": {
+      "revenue": 1783400000,
+      "operating_expenses": 1219599000,
+      "operating_income": 638777000,
+      "net_income": 654273000,
+      "shares_outstanding": 619871237,
+      "weighted_avg_shares_diluted": 618199000,
+      "income_tax_expense": 60952000,
+      "total_assets": 18274022000,
+      "total_liabilities": 8548287000,
+      "stockholders_equity": 9653458000,
+      "cash_and_equivalents": 780518000,
+      "cash_and_equivalents_and_restricted_cash": 783757000,
+      "restricted_cash": 3239000,
+      "long_term_debt": 7262900000,
+      "retained_earnings": -122576000,
+      "accumulated_other_comprehensive_income": 3329000,
+      "operating_cash_flow": 1071607000,
+      "investing_cash_flow": -136983000,
+      "financing_cash_flow": -300696000,
+      "dividends_paid": -654358000,
+      "share_repurchases": 0,
+      "depreciation_and_amortization": 507265000,
+      "net_change_in_cash": 633928000,
+      "cash_ending": 783757000,
+      "total_debt": 7262900000
+    },
+    "2022-12-31": {
+      "revenue": 1727684000,
+      "operating_expenses": 1177399000,
+      "operating_income": 565464000,
+      "net_income": 125976000,
+      "shares_outstanding": 618483565,
+      "weighted_avg_shares_diluted": 617858000,
+      "income_tax_expense": 56654000,
+      "total_assets": 17826122000,
+      "total_liabilities": 8086280000,
+      "stockholders_equity": 9646909000,
+      "cash_and_equivalents": 146970000,
+      "cash_and_equivalents_and_restricted_cash": 149829000,
+      "restricted_cash": 2859000,
+      "long_term_debt": 6781000000,
+      "retained_earnings": -119548000,
+      "accumulated_other_comprehensive_income": 10581000,
+      "operating_cash_flow": 861114000,
+      "investing_cash_flow": -63217000,
+      "financing_cash_flow": -982731000,
+      "dividends_paid": -542267000,
+      "depreciation_and_amortization": 505000000,
+      "net_change_in_cash": -184834000,
+      "cash_ending": 149829000,
+      "total_debt": 6781000000
+    },
+    "2021-12-31": {
+      "revenue": 1364585000,
+      "operating_expenses": 971140000,
+      "operating_income": 424286000,
+      "net_income": 844059000,
+      "shares_outstanding": 616658593,
+      "weighted_avg_shares_diluted": 511385000,
+      "income_tax_expense": 3380000,
+      "total_assets": 18459199000,
+      "total_liabilities": 8335537000,
+      "stockholders_equity": 10110182000,
+      "cash_and_equivalents": 325631000,
+      "cash_and_equivalents_and_restricted_cash": 334663000,
+      "restricted_cash": 9032000,
+      "long_term_debt": 7027100000,
+      "retained_earnings": 299115000,
+      "accumulated_other_comprehensive_income": 2216000,
+      "operating_cash_flow": 618875000,
+      "investing_cash_flow": -476259000,
+      "financing_cash_flow": -101141000,
+      "dividends_paid": -380316000,
+      "depreciation_and_amortization": 395320000,
+      "net_change_in_cash": 41475000,
+      "cash_ending": 334663000,
+      "total_debt": 7027100000
+    },
+    "2020-12-31": {
+      "revenue": 1057893000,
+      "operating_expenses": 731765000,
+      "operating_income": 332612000,
+      "net_income": 1000833000,
+      "shares_outstanding": 432518743,
+      "weighted_avg_shares_diluted": 431633000,
+      "income_tax_expense": 978000,
+      "total_assets": 11614498000,
+      "total_liabilities": 5928460000,
+      "stockholders_equity": 5670254000,
+      "cash_and_equivalents": 293188000,
+      "cash_and_equivalents_and_restricted_cash": 293188000,
+      "restricted_cash": 235000,
+      "long_term_debt": 5044200000,
+      "accumulated_other_comprehensive_income": 0,
+      "operating_cash_flow": 589913000,
+      "investing_cash_flow": -33273000,
+      "financing_cash_flow": -387399000,
+      "dividends_paid": -377651000,
+      "share_repurchases": 0,
+      "depreciation_and_amortization": 288955000,
+      "net_change_in_cash": 169241000,
+      "cash_ending": 293188000,
+      "total_debt": 5044200000
+    },
+    "2020-09-30": {
+      "revenue": 259792000,
+      "net_income": -38394000
+    },
+    "2020-06-30": {
+      "revenue": 238916000,
+      "net_income": 747893000
+    },
+    "2020-03-31": {
+      "revenue": 289744000,
+      "net_income": 90100000
+    },
+    "2019-12-31": {
+      "revenue": 1158884000,
+      "operating_expenses": 760515000,
+      "operating_income": 477587000,
+      "net_income": 410605000,
+      "shares_outstanding": 431814951,
+      "weighted_avg_shares_diluted": 421799000,
+      "income_tax_expense": -3317000,
+      "total_assets": 10997867000,
+      "total_liabilities": 6051017000,
+      "stockholders_equity": 4928907000,
+      "cash_and_equivalents": 123947000,
+      "long_term_debt": 4831800000,
+      "operating_cash_flow": 583628000,
+      "investing_cash_flow": -120421000,
+      "financing_cash_flow": -482841000,
+      "dividends_paid": -528606000,
+      "share_repurchases": 0,
+      "depreciation_and_amortization": 277879000,
+      "net_change_in_cash": -19634000,
+      "total_debt": 4831800000
+    },
+    "2019-09-30": {
+      "revenue": 282871000,
+      "net_income": 83990000
+    },
+    "2019-06-30": {
+      "revenue": 284873000,
+      "net_income": 101027000
+    },
+    "2019-03-31": {
+      "revenue": 295010000,
+      "net_income": 116169000
+    },
+    "2018-12-31": {
+      "revenue": 1164762000,
+      "operating_expenses": 812196000,
+      "operating_income": 582406000,
+      "net_income": 497795000,
+      "shares_outstanding": 421388879,
+      "weighted_avg_shares_diluted": 421379000,
+      "income_tax_expense": 1600000,
+      "total_assets": 10999100000,
+      "total_liabilities": 5564365000,
+      "stockholders_equity": 5411053000,
+      "cash_and_equivalents": 143581000,
+      "long_term_debt": 4381500000,
+      "operating_cash_flow": 637936000,
+      "investing_cash_flow": 253645000,
+      "financing_cash_flow": -986513000,
+      "dividends_paid": -526912000,
+      "share_repurchases": -75126000,
+      "depreciation_and_amortization": 310380000,
+      "net_change_in_cash": -94932000,
+      "total_debt": 4381500000
+    },
+    "2018-09-30": {
+      "revenue": 283080000,
+      "net_income": 100158000
+    },
+    "2018-06-30": {
+      "revenue": 293403000,
+      "net_income": 165386000
+    },
+    "2018-03-31": {
+      "revenue": 304078000,
+      "net_income": 144090000
+    },
+    "2017-12-31": {
+      "revenue": 1200834000,
+      "operating_expenses": 863355000,
+      "operating_income": 337479000,
+      "net_income": 426075000,
+      "shares_outstanding": 425646380,
+      "weighted_avg_shares_diluted": 424019000,
+      "income_tax_expense": -880000,
+      "total_assets": 11763726000,
+      "total_liabilities": 6225436000,
+      "stockholders_equity": 5522147000,
+      "cash_and_equivalents": 238513000,
+      "long_term_debt": 4596100000,
+      "accumulated_other_comprehensive_income": -1480000,
+      "operating_cash_flow": 614181000,
+      "investing_cash_flow": -294280000,
+      "financing_cash_flow": -223874000,
+      "dividends_paid": -503793000,
+      "share_repurchases": 0,
+      "depreciation_and_amortization": 360811000,
+      "net_change_in_cash": 96027000,
+      "total_debt": 4596100000
+    },
+    "2017-09-30": {
+      "revenue": 294845000,
+      "net_income": 121030000
+    },
+    "2017-06-30": {
+      "revenue": 297176000,
+      "net_income": 143416000
+    },
+    "2017-03-31": {
+      "revenue": 293588000,
+      "net_income": 76733000
+    },
+    "2016-12-31": {
+      "revenue": 1170792000,
+      "operating_expenses": 869969000,
+      "operating_income": 300823000,
+      "net_income": 378850000,
+      "shares_outstanding": 425034113,
+      "weighted_avg_shares_diluted": 419709000,
+      "income_tax_expense": -72545000,
+      "total_assets": 11230600000,
+      "total_liabilities": 5740773000,
+      "stockholders_equity": 5402874000,
+      "cash_and_equivalents": 142486000,
+      "long_term_debt": 3927300000,
+      "accumulated_other_comprehensive_income": 5766000,
+      "operating_cash_flow": 592096000,
+      "investing_cash_flow": 165383000,
+      "financing_cash_flow": -804527000,
+      "dividends_paid": -471850000,
+      "depreciation_and_amortization": 355320000,
+      "net_change_in_cash": -47048000,
+      "total_debt": 3927300000
+    },
+    "2015-12-31": {
+      "revenue": 1166769000,
+      "operating_expenses": 823197000,
+      "operating_income": 343572000,
+      "net_income": 894115000,
+      "shares_outstanding": 413430756,
+      "weighted_avg_shares_diluted": 412851000,
+      "income_tax_expense": 60230000,
+      "total_assets": 11344171000,
+      "total_liabilities": 6075511000,
+      "stockholders_equity": 5181951000,
+      "cash_and_equivalents": 189534000,
+      "long_term_debt": 3761300000,
+      "accumulated_other_comprehensive_income": 5588000,
+      "operating_cash_flow": 493701000,
+      "investing_cash_flow": 21365000,
+      "financing_cash_flow": -512854000,
+      "dividends_paid": -454036000,
+      "depreciation_and_amortization": 344527000,
+      "total_debt": 3761300000
+    },
+    "2014-12-31": {
+      "revenue": 993897000,
+      "operating_expenses": 683582000,
+      "operating_income": 310315000,
+      "net_income": 424001000,
+      "shares_outstanding": 411819818,
+      "weighted_avg_shares_diluted": 411038000,
+      "income_tax_expense": 22438000,
+      "total_assets": 10285728000,
+      "total_liabilities": 5292483000,
+      "stockholders_equity": 4901765000,
+      "cash_and_equivalents": 187322000,
+      "accumulated_other_comprehensive_income": 45122000,
+      "operating_cash_flow": 629343000,
+      "investing_cash_flow": 126705000,
+      "financing_cash_flow": -717494000,
+      "dividends_paid": -427873000,
+      "depreciation_and_amortization": 273093000
+    },
+    "2013-12-31": {
+      "revenue": 946673000,
+      "operating_expenses": 721171000,
+      "operating_income": 225502000,
+      "net_income": 236281000,
+      "shares_outstanding": 409731058,
+      "weighted_avg_shares_diluted": 408614000,
+      "income_tax_expense": 34520000,
+      "total_assets": 9663630000,
+      "total_liabilities": 4807951000,
+      "stockholders_equity": 4769526000,
+      "cash_and_equivalents": 148768000,
+      "accumulated_other_comprehensive_income": -64982000,
+      "operating_cash_flow": 570035000,
+      "investing_cash_flow": 72235000,
+      "financing_cash_flow": -635377000,
+      "dividends_paid": -400354000,
+      "depreciation_and_amortization": 257855000
+    },
+    "2012-12-31": {
+      "revenue": 922304000,
+      "operating_expenses": 664794000,
+      "operating_income": 257510000,
+      "net_income": 266073000,
+      "shares_outstanding": 407782102,
+      "weighted_avg_shares_diluted": 406689000,
+      "income_tax_expense": 3939000,
+      "total_assets": 9740807000,
+      "total_liabilities": 4727251000,
+      "stockholders_equity": 4932480000,
+      "cash_and_equivalents": 141875000,
+      "restricted_cash": 4000000,
+      "accumulated_other_comprehensive_income": -66182000,
+      "operating_cash_flow": 479054000,
+      "investing_cash_flow": -51000000,
+      "financing_cash_flow": -399061000,
+      "dividends_paid": -382722000,
+      "share_repurchases": -30947000,
+      "depreciation_and_amortization": 262742000
+    },
+    "2011-12-31": {
+      "revenue": 861057000,
+      "operating_expenses": 608131000,
+      "operating_income": 252926000,
+      "net_income": 169051000,
+      "shares_outstanding": 406937830,
+      "weighted_avg_shares_diluted": 407669000,
+      "income_tax_expense": 19537000,
+      "total_assets": 9614516000,
+      "total_liabilities": 4639299000,
+      "stockholders_equity": 4880143000,
+      "cash_and_equivalents": 112882000,
+      "restricted_cash": 5600000,
+      "accumulated_other_comprehensive_income": -107660000,
+      "operating_cash_flow": 448613000,
+      "investing_cash_flow": -20760000,
+      "financing_cash_flow": -440125000,
+      "dividends_paid": -353764000,
+      "share_repurchases": -6003000,
+      "depreciation_and_amortization": 251139000
+    },
+    "2010-12-31": {
+      "revenue": 826806000,
+      "operating_expenses": 596966000,
+      "operating_income": 229840000,
+      "net_income": 142868000,
+      "shares_outstanding": 406423514,
+      "weighted_avg_shares_diluted": 406201000,
+      "income_tax_expense": 3415000,
+      "total_assets": 9833875000,
+      "total_liabilities": 4577529000,
+      "stockholders_equity": 5161286000,
+      "cash_and_equivalents": 125154000,
+      "restricted_cash": 3900000,
+      "accumulated_other_comprehensive_income": -23853000,
+      "operating_cash_flow": 479935000,
+      "capex": -251305000,
+      "investing_cash_flow": 37904000,
+      "financing_cash_flow": -514743000,
+      "dividends_paid": -306964000,
+      "depreciation_and_amortization": 247637000,
+      "free_cash_flow": 228630000
+    },
+    "2016-09-30": {
+      "net_income": -43545000
+    },
+    "2016-06-30": {
+      "net_income": 203409000
+    },
+    "2016-03-31": {
+      "net_income": 140713000
+    },
+    "2015-09-30": {
+      "net_income": 77572000
+    },
+    "2015-06-30": {
+      "net_income": 127000000
+    },
+    "2015-03-31": {
+      "net_income": 310342000
+    },
+    "2014-09-30": {
+      "net_income": 194708000
+    },
+    "2014-06-30": {
+      "net_income": 89512000
+    },
+    "2014-03-31": {
+      "net_income": 87000000
+    },
+    "2013-09-30": {
+      "net_income": 55763000
+    },
+    "2013-06-30": {
+      "net_income": 51139000
+    },
+    "2013-03-31": {
+      "net_income": 67770000
+    },
+    "2012-09-30": {
+      "net_income": 54941000
+    },
+    "2012-06-30": {
+      "net_income": 69112000
+    },
+    "2012-03-31": {
+      "net_income": 53638000
+    },
+    "2011-09-30": {
+      "net_income": 54981000
+    },
+    "2011-06-30": {
+      "net_income": 38709000
+    },
+    "2011-03-31": {
+      "net_income": 28963000
+    },
+    "2010-09-30": {
+      "net_income": 30333000
+    },
+    "2010-06-30": {
+      "net_income": 24611000
+    },
+    "2010-03-31": {
+      "net_income": 50836000
+    },
+    "2009-12-31": {
+      "net_income": -3942000,
+      "shares_outstanding": 405532566,
+      "weighted_avg_shares_diluted": 350077000,
+      "income_tax_expense": -36622000,
+      "total_assets": 10162205000,
+      "total_liabilities": 4943923000,
+      "stockholders_equity": 5117978000,
+      "cash_and_equivalents": 122058000,
+      "restricted_cash": 18300000,
+      "accumulated_other_comprehensive_income": -96432000,
+      "operating_cash_flow": 403582000,
+      "capex": -955371000,
+      "investing_cash_flow": -343236000,
+      "financing_cash_flow": -74465000,
+      "dividends_paid": -331024000,
+      "depreciation_and_amortization": 227776000,
+      "free_cash_flow": -551789000
+    },
+    "2009-09-30": {
+      "net_income": 40108000
+    },
+    "2009-06-30": {
+      "net_income": -134651000
+    },
+    "2009-03-31": {
+      "net_income": 38424000
+    },
+    "2008-12-31": {
+      "net_income": 249902000,
+      "shares_outstanding": 271080525,
+      "weighted_avg_shares_diluted": 258843000,
+      "income_tax_expense": -12974000,
+      "total_assets": 9397147000,
+      "total_liabilities": 5076561000,
+      "stockholders_equity": 4204733000,
+      "cash_and_equivalents": 136177000,
+      "accumulated_other_comprehensive_income": -179541000,
+      "operating_cash_flow": 567599000,
+      "investing_cash_flow": -781350000,
+      "financing_cash_flow": 262429000,
+      "dividends_paid": -469024000,
+      "depreciation_and_amortization": 206518000
+    },
+    "2007-12-31": {
+      "net_income": 442830000,
+      "weighted_avg_shares_diluted": 257058000,
+      "income_tax_expense": -31850000,
+      "stockholders_equity": 4169141000,
+      "cash_and_equivalents": 87499000,
+      "operating_cash_flow": 665989000,
+      "investing_cash_flow": -1507611000,
+      "financing_cash_flow": 584056000,
+      "depreciation_and_amortization": 191270000
+    },
+    "2006-12-31": {
+      "stockholders_equity": 3610201000,
+      "cash_and_equivalents": 345065000
+    }
+  }
+}

@@ -45,6 +45,14 @@ export interface ProvenanceReceipt {
   xbrl_tag: string;
   /** XBRL namespace (e.g., "us-gaap", "ifrs-full") */
   namespace: string;
+  /** Governed concept-selection policy used for this tag, if applicable */
+  selection_policy?: string;
+  /** Concept scope that won under the governed selection policy */
+  concept_scope?: string;
+  /** Candidate tags considered during governed concept resolution */
+  candidate_tags_considered?: string[];
+  /** Human-readable rationale for the selected tag */
+  selection_rationale?: string;
   /** SEC accession number (unique filing identifier) */
   accession_number: string;
   /** Filing URL on EDGAR */
@@ -113,6 +121,8 @@ export interface Ratio {
   period: string;
   /** Provenance: maps component metric name → its provenance receipt */
   provenance?: Record<string, ProvenanceReceipt>;
+  /** QA notes (e.g. missing inventory for quick ratio) */
+  notes?: string[];
 }
 
 export interface TrendData {

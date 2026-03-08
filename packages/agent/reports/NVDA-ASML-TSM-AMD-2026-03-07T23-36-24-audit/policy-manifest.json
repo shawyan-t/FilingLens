@@ -1,0 +1,29 @@
+{
+  "policy": {
+    "mode": "screening",
+    "comparisonBasisMode": "latest_per_peer_with_prominent_disclosure",
+    "requestedComparisonBasisMode": "latest_per_peer_with_prominent_disclosure",
+    "statementHistoryPeriods": 5,
+    "trendHistoryPeriods": 10,
+    "returnMetricBasisMode": "average_balance",
+    "sparseDerivationMode": "expanded",
+    "strictLayoutQA": false,
+    "persistAuditArtifacts": true,
+    "narrativeGovernanceMode": "deterministic",
+    "allowExternalContext": false,
+    "comparisonRequireOverlap": false,
+    "comparisonFallbackMode": "latest_per_peer_with_prominent_disclosure",
+    "comparisonMaxPeriodSpreadDays": 45,
+    "metricNAInference": "governed",
+    "displayDerivedLabels": true,
+    "percentMeaningfulBase": 0.05
+  },
+  "report_id": "fl_mmgypns2_hk11mb",
+  "tickers": [
+    "NVDA",
+    "ASML",
+    "TSM",
+    "AMD"
+  ],
+  "generated_at": "2026-03-07T23:36:24.482Z"
+}

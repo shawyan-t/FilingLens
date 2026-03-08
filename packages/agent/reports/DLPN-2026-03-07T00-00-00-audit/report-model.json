@@ -569,6 +569,21 @@
               }
             },
             {
+              "key": "cash_ending",
+              "label": "Cash at End of Period (cash-flow statement)",
+              "unit": "USD",
+              "current": 9128846,
+              "prior": 7560691,
+              "change": 0.2074089524356968,
+              "currentDisplay": "$9.1M",
+              "priorDisplay": "$7.6M",
+              "changeDisplay": "20.7%",
+              "availability": {
+                "current": "reported",
+                "prior": "reported"
+              }
+            },
+            {
               "key": "capex",
               "label": "Capital Expenditures",
               "unit": "USD",
@@ -1065,6 +1080,21 @@
               "currentDisplay": "-$158K",
               "priorDisplay": "-$4.6M",
               "changeDisplay": "-96.6%",
+              "availability": {
+                "current": "reported",
+                "prior": "reported"
+              }
+            },
+            {
+              "key": "cash_ending",
+              "label": "Cash at End of Period (cash-flow statement)",
+              "unit": "USD",
+              "current": 9128846,
+              "prior": 7560691,
+              "change": 0.2074089524356968,
+              "currentDisplay": "$9.1M",
+              "priorDisplay": "$7.6M",
+              "changeDisplay": "20.7%",
               "availability": {
                 "current": "reported",
                 "prior": "reported"

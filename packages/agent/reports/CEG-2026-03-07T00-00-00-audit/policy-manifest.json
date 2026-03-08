@@ -2,6 +2,7 @@
   "policy": {
     "mode": "institutional",
     "comparisonBasisMode": "overlap_normalized",
+    "requestedComparisonBasisMode": "overlap_normalized",
     "statementHistoryPeriods": 5,
     "trendHistoryPeriods": 10,
     "returnMetricBasisMode": "average_balance",
@@ -11,6 +12,8 @@
     "narrativeGovernanceMode": "deterministic",
     "allowExternalContext": false,
     "comparisonRequireOverlap": false,
+    "comparisonFallbackMode": null,
+    "comparisonMaxPeriodSpreadDays": 45,
     "metricNAInference": "governed",
     "displayDerivedLabels": true,
     "percentMeaningfulBase": 0.05

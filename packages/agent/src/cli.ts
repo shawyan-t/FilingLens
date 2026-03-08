@@ -14,19 +14,20 @@ import { spawn } from 'node:child_process';
 // Load .env from project root (2 levels up from packages/agent/)
 dotenv.config({ path: resolve(import.meta.dirname, '../../../.env') });
 
-import { select, input } from '@inquirer/prompts';
+import { select, input, confirm } from '@inquirer/prompts';
 import { runBootup } from '@dolph/bootup';
 import { runPipeline } from './pipeline.js';
 import { createLLMProvider, getLLMConfig } from './llm/provider.js';
 import { generatePDF } from './exporter.js';
-import { generateDCFPackage } from './dcf-builder.js';
+import { exportCSV } from './exporter-csv.js';
+
 import { searchFilings } from '@dolph/mcp-sec-server/tools/search-filings.js';
 import { getFilingContent } from '@dolph/mcp-sec-server/tools/get-filing-content.js';
 import { resolveTickerWithConfidence } from '@dolph/mcp-sec-server/edgar/cik-lookup.js';
 import type { PipelineConfig, PipelineCallbacks } from './types.js';
 import type { CanonicalReportPackage } from './canonical-report-package.js';
 import type { Report, AnalysisContext, ReportingPolicy } from '@dolph/shared';
-import { defaultFilingsDir } from './report-paths.js';
+import { defaultFilingsDir, defaultReportsDir } from './report-paths.js';
 
 // ── ANSI helpers ──────────────────────────────────────────────
 
@@ -142,9 +143,8 @@ function printMenuHeader(): void {
   console.log(`${BLUE}│${RESET}   2. Compare Companies                  ${BLUE}│${RESET}`);
   console.log(`${BLUE}│${RESET}   3. Search SEC Filings                 ${BLUE}│${RESET}`);
   console.log(`${BLUE}│${RESET}   4. Resolve Ticker (/map)              ${BLUE}│${RESET}`);
-  console.log(`${BLUE}│${RESET}   5. Generate DCF Model                 ${BLUE}│${RESET}`);
-  console.log(`${BLUE}│${RESET}   6. Settings                           ${BLUE}│${RESET}`);
-  console.log(`${BLUE}│${RESET}   7. Exit                               ${BLUE}│${RESET}`);
+  console.log(`${BLUE}│${RESET}   5. Settings                           ${BLUE}│${RESET}`);
+  console.log(`${BLUE}│${RESET}   6. Exit                               ${BLUE}│${RESET}`);
   console.log(`${BLUE}│${RESET}                                         ${BLUE}│${RESET}`);
   console.log(`${BLUE}└─────────────────────────────────────────┘${RESET}`);
   console.log('');
@@ -177,6 +177,23 @@ function buildCallbacks(outputFormat: 'terminal' | 'pdf' | 'both'): PipelineCall
           console.log(`  ${GREEN}✓${RESET} PDF saved: ${BOLD}${pdfPath}${RESET}`);
         } catch (err) {
           console.error(`  ${RED}✗${RESET} PDF generation failed: ${err instanceof Error ? err.message : err}`);
+        }
+      }
+
+      // CSV export
+      if (context && canonicalPackage) {
+        const wantCSV = await confirm({
+          message: 'Export data to CSV?',
+          default: false,
+        });
+        if (wantCSV) {
+          try {
+            const csv = await exportCSV(report, context, canonicalPackage.reportModel, defaultReportsDir());
+            console.log(`  ${GREEN}✓${RESET} Metrics CSV: ${BOLD}${csv.metricsPath}${RESET}`);
+            console.log(`  ${GREEN}✓${RESET} Ratios CSV:  ${BOLD}${csv.ratiosPath}${RESET}`);
+          } catch (err) {
+            console.error(`  ${RED}✗${RESET} CSV export failed: ${err instanceof Error ? err.message : err}`);
+          }
         }
       }
     },
@@ -618,58 +635,6 @@ async function handleMap(): Promise<void> {
   console.log('');
 }
 
-async function handleDCF(): Promise<void> {
-  const rawTicker = await input({
-    message: 'Enter ticker symbol for DCF model:',
-    validate: (v) => (v.trim().length > 0 ? true : 'Enter a ticker'),
-  });
-
-  const tickerUpper = await resolveAndConfirm(rawTicker);
-
-  console.log('');
-  console.log(`${BOLD}Building DCF model for ${tickerUpper}...${RESET}`);
-  console.log('');
-
-  console.log(`  ${DIM}Narrative: deterministic mode (no LLM needed for DCF data prep)${RESET}`);
-  console.log('');
-
-  // Run pipeline to gather AnalysisContext (facts needed for DCF)
-  const config: PipelineConfig = {
-    tickers: [tickerUpper],
-    type: 'single',
-    maxRetries: parseInt(process.env['DOLPH_MAX_RETRIES'] || '2', 10),
-    maxValidationLoops: 0, // Skip validation — we only need data for DCF
-    narrativeMode: 'deterministic',
-    outputFormat: 'terminal',
-  };
-
-  try {
-    const controller = new AbortController();
-    activeAbortController = controller;
-    const { context } = await runPipeline({ ...config, abortSignal: controller.signal }, undefined, {
-      onStep(step, status, detail) {
-        const icon = ICONS[status];
-        const detailStr = detail ? ` ${DIM}(${detail})${RESET}` : '';
-        console.log(`  ${icon} ${step}${detailStr}`);
-      },
-    });
-    if (activeAbortController === controller) activeAbortController = null;
-
-    console.log('');
-    console.log(`  ${YELLOW}⟳${RESET} Generating DCF package...`);
-
-    const { xlsxPath, jsonPath, provenancePath } = await generateDCFPackage(context, tickerUpper);
-
-    console.log(`  ${GREEN}✓${RESET} XLSX:        ${BOLD}${xlsxPath}${RESET}`);
-    console.log(`  ${GREEN}✓${RESET} Assumptions: ${BOLD}${jsonPath}${RESET}`);
-    console.log(`  ${GREEN}✓${RESET} Provenance:  ${BOLD}${provenancePath}${RESET}`);
-  } catch (err) {
-    activeAbortController = null;
-    console.error(`  ${RED}✗${RESET} DCF failed: ${err instanceof Error ? err.message : err}`);
-  }
-
-  console.log('');
-}
 
 async function handleSettings(): Promise<void> {
   const envPath = resolve(import.meta.dirname, '../../../.env');
@@ -806,7 +771,6 @@ async function main(): Promise<void> {
         { name: '📈  Compare Companies', value: 'compare' },
         { name: '🔍  Search SEC Filings', value: 'search' },
         { name: '🏷️   Resolve Ticker (/map)', value: 'map' },
-        { name: '📋  Generate DCF Model', value: 'dcf' },
         { name: '⚙️   Settings', value: 'settings' },
         { name: '👋  Exit', value: 'exit' },
       ],
@@ -825,9 +789,6 @@ async function main(): Promise<void> {
           break;
         case 'map':
           await handleMap();
-          break;
-        case 'dcf':
-          await handleDCF();
           break;
         case 'settings':
           await handleSettings();

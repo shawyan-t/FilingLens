@@ -67,6 +67,45 @@
       "note": null
     },
     {
+      "key": "cash_ending",
+      "label": "Cash at End of Period (cash-flow statement)",
+      "current": "$5.56B",
+      "prior": "$3.81B",
+      "change": "45.8%",
+      "availability": {
+        "current": "reported",
+        "prior": "reported"
+      },
+      "basis": null,
+      "note": null
+    },
+    {
+      "key": "cash_and_equivalents_and_restricted_cash",
+      "label": "Cash, Cash Equivalents & Restricted Cash",
+      "current": "Unavailable",
+      "prior": "Unavailable",
+      "change": "Unavailable",
+      "availability": {
+        "current": "missing_inputs",
+        "prior": "missing_inputs"
+      },
+      "basis": null,
+      "note": null
+    },
+    {
+      "key": "cash_and_equivalents_and_short_term_investments",
+      "label": "Cash, Cash Equivalents & Short-Term Investments",
+      "current": "Unavailable",
+      "prior": "Unavailable",
+      "change": "Unavailable",
+      "availability": {
+        "current": "missing_inputs",
+        "prior": "missing_inputs"
+      },
+      "basis": null,
+      "note": null
+    },
+    {
       "key": "current_assets",
       "label": "Current Assets",
       "current": "$26.9B",
@@ -194,6 +233,19 @@
       "note": null
     },
     {
+      "key": "marketable_securities",
+      "label": "Marketable Securities",
+      "current": "$5.01B",
+      "prior": "$1.34B",
+      "change": "272.7%",
+      "availability": {
+        "current": "reported",
+        "prior": "reported"
+      },
+      "basis": null,
+      "note": null
+    },
+    {
       "key": "net_income",
       "label": "Net Income",
       "current": "$4.33B",
@@ -272,6 +324,19 @@
       "note": null
     },
     {
+      "key": "restricted_cash",
+      "label": "Restricted Cash",
+      "current": "Unavailable",
+      "prior": "Unavailable",
+      "change": "Unavailable",
+      "availability": {
+        "current": "missing_inputs",
+        "prior": "missing_inputs"
+      },
+      "basis": null,
+      "note": null
+    },
+    {
       "key": "roa",
       "label": "Return on Assets",
       "current": "5.9%",
@@ -342,6 +407,19 @@
       "availability": {
         "current": "reported",
         "prior": "reported"
+      },
+      "basis": null,
+      "note": null
+    },
+    {
+      "key": "short_term_investments",
+      "label": "Short-Term Investments",
+      "current": "Unavailable",
+      "prior": "Unavailable",
+      "change": "Unavailable",
+      "availability": {
+        "current": "missing_inputs",
+        "prior": "missing_inputs"
       },
       "basis": null,
       "note": null
@@ -480,6 +558,45 @@
       "note": null
     },
     {
+      "key": "cash_ending",
+      "label": "Cash at End of Period (cash-flow statement)",
+      "current": "$10.6B",
+      "prior": "$8.59B",
+      "change": "23.5%",
+      "availability": {
+        "current": "reported",
+        "prior": "reported"
+      },
+      "basis": null,
+      "note": null
+    },
+    {
+      "key": "cash_and_equivalents_and_restricted_cash",
+      "label": "Cash, Cash Equivalents & Restricted Cash",
+      "current": "Unavailable",
+      "prior": "Unavailable",
+      "change": "Unavailable",
+      "availability": {
+        "current": "missing_inputs",
+        "prior": "missing_inputs"
+      },
+      "basis": null,
+      "note": null
+    },
+    {
+      "key": "cash_and_equivalents_and_short_term_investments",
+      "label": "Cash, Cash Equivalents & Short-Term Investments",
+      "current": "Unavailable",
+      "prior": "Unavailable",
+      "change": "Unavailable",
+      "availability": {
+        "current": "missing_inputs",
+        "prior": "missing_inputs"
+      },
+      "basis": null,
+      "note": null
+    },
+    {
       "key": "current_assets",
       "label": "Current Assets",
       "current": "$126B",
@@ -607,6 +724,19 @@
       "note": null
     },
     {
+      "key": "marketable_securities",
+      "label": "Marketable Securities",
+      "current": "Unavailable",
+      "prior": "$34.6B",
+      "change": "Unavailable",
+      "availability": {
+        "current": "missing_inputs",
+        "prior": "reported"
+      },
+      "basis": null,
+      "note": null
+    },
+    {
       "key": "net_income",
       "label": "Net Income",
       "current": "$120B",
@@ -685,6 +815,19 @@
       "note": null
     },
     {
+      "key": "restricted_cash",
+      "label": "Restricted Cash",
+      "current": "Unavailable",
+      "prior": "Unavailable",
+      "change": "Unavailable",
+      "availability": {
+        "current": "missing_inputs",
+        "prior": "missing_inputs"
+      },
+      "basis": null,
+      "note": null
+    },
+    {
       "key": "roa",
       "label": "Return on Assets",
       "current": "75.4%",
@@ -755,6 +898,19 @@
       "availability": {
         "current": "reported",
         "prior": "reported"
+      },
+      "basis": null,
+      "note": null
+    },
+    {
+      "key": "short_term_investments",
+      "label": "Short-Term Investments",
+      "current": "Unavailable",
+      "prior": "Unavailable",
+      "change": "Unavailable",
+      "availability": {
+        "current": "missing_inputs",
+        "prior": "missing_inputs"
       },
       "basis": null,
       "note": null

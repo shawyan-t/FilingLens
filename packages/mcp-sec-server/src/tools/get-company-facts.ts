@@ -7,11 +7,18 @@
  */
 
 import { z } from 'zod';
-import type { CompanyFacts, FinancialFact } from '@dolph/shared';
+import type {
+  CompanyFacts,
+  FinancialFact,
+  ConceptSelectionPolicy,
+  RevenueConceptScope,
+} from '@dolph/shared';
 import {
   SEC_XBRL_COMPANY_FACTS_URL,
   CACHE_TTL_COMPANY_FACTS,
   XBRL_MAPPINGS,
+  XBRL_CONCEPT_SELECTION_VERSION,
+  getGovernedTagProfile,
 } from '@dolph/shared';
 import { resolveCik, getCompanyName } from '../edgar/cik-lookup.js';
 import { edgarFetchJson } from '../edgar/client.js';
@@ -71,7 +78,7 @@ const STRICT_FX_DATA_MODE = process.env['DOLPH_STRICT_FX_MODE'] === '1';
 export async function getCompanyFacts(params: GetCompanyFactsParams): Promise<CompanyFacts> {
   const { ticker } = params;
   const cik = await resolveCik(ticker);
-  const cacheKey = ticker.toUpperCase();
+  const cacheKey = `${ticker.toUpperCase()}:${XBRL_CONCEPT_SELECTION_VERSION}`;
 
   // Check cache
   const cached = await fileCache.get<CompanyFacts>('company_facts', cacheKey, CACHE_TTL_COMPANY_FACTS);
@@ -100,6 +107,7 @@ export async function getCompanyFacts(params: GetCompanyFactsParams): Promise<Co
     if (hasUsGaap && mapping.xbrlTags.length > 0) {
       const best = selectBestTagPeriods(
         usGaap,
+        mapping,
         mapping.xbrlTags,
         'us-gaap',
         cik,
@@ -115,6 +123,7 @@ export async function getCompanyFacts(params: GetCompanyFactsParams): Promise<Co
     if (!found && hasIfrs && mapping.ifrsTags.length > 0) {
       const best = selectBestTagPeriods(
         ifrs,
+        mapping,
         mapping.ifrsTags,
         'ifrs-full',
         cik,
@@ -269,10 +278,14 @@ interface TagCandidate {
   latestAnnualYear: number | null;
   annualCount: number;
   latestPeriod: string;
+  selectionPolicy: ConceptSelectionPolicy;
+  conceptPriority: number;
+  conceptScope?: RevenueConceptScope;
 }
 
 function selectBestTagPeriods(
   namespaceFacts: Record<string, XBRLFact>,
+  mapping: (typeof XBRL_MAPPINGS)[number],
   tagNames: string[],
   namespace: string,
   cik: string,
@@ -285,6 +298,10 @@ function selectBestTagPeriods(
     if (!fact || !fact.units) continue;
     const periods = extractPeriods(fact, tagName, namespace, cik);
     if (periods.length === 0) continue;
+    const governedProfile = (namespace === 'us-gaap' || namespace === 'ifrs-full')
+      ? getGovernedTagProfile(mapping, namespace, tagName)
+      : undefined;
+    const selectionPolicy = mapping.selectionPolicy || 'ordered_tag_priority';
 
     const latestAnnualYear = getLatestAnnualYearFromPeriods(periods);
     // Discard stale tags for active issuers so we don't surface ancient series
@@ -299,7 +316,17 @@ function selectBestTagPeriods(
 
     const annualCount = periods.filter(p => ANNUAL_FORMS.has(p.form)).length;
     const latestPeriod = periods[0]?.period || '';
-    candidates.push({ tagName, tagRank, periods, latestAnnualYear, annualCount, latestPeriod });
+    candidates.push({
+      tagName,
+      tagRank,
+      periods,
+      latestAnnualYear,
+      annualCount,
+      latestPeriod,
+      selectionPolicy,
+      conceptPriority: governedProfile?.conceptPriority ?? 0,
+      conceptScope: governedProfile?.conceptScope,
+    });
   }
 
   if (candidates.length === 0) return null;
@@ -309,6 +336,11 @@ function selectBestTagPeriods(
     const bAnnual = b.latestAnnualYear ?? -1;
     // Primary: prefer tag with most recent annual data
     if (aAnnual !== bAnnual) return bAnnual - aAnnual;
+    // Revenue-like concepts can opt into governed scope selection instead of
+    // generic first-tag-wins ordering.
+    if (a.selectionPolicy === 'governed_revenue_scope' || b.selectionPolicy === 'governed_revenue_scope') {
+      if (a.conceptPriority !== b.conceptPriority) return b.conceptPriority - a.conceptPriority;
+    }
     // When latest annual year is tied, prefer the higher-priority tag
     // (lower tagRank = earlier in mapping's xbrlTags array = more preferred)
     if (a.tagRank !== b.tagRank) return a.tagRank - b.tagRank;
@@ -318,7 +350,51 @@ function selectBestTagPeriods(
   });
 
   const best = candidates[0]!;
+  annotateSelectionProvenance(mapping.standardName, best, candidates);
   return { tagName: best.tagName, periods: best.periods };
+}
+
+function annotateSelectionProvenance(
+  metric: string,
+  best: TagCandidate,
+  candidates: TagCandidate[],
+): void {
+  const candidateTags = candidates.map(candidate => candidate.tagName);
+  const selectionRationale = buildSelectionRationale(metric, best, candidates);
+  for (const period of best.periods) {
+    if (!period.provenance) continue;
+    period.provenance.selection_policy = best.selectionPolicy;
+    period.provenance.candidate_tags_considered = candidateTags;
+    if (best.conceptScope) {
+      period.provenance.concept_scope = best.conceptScope;
+    }
+    period.provenance.selection_rationale = selectionRationale;
+  }
+}
+
+function buildSelectionRationale(
+  metric: string,
+  best: TagCandidate,
+  candidates: TagCandidate[],
+): string {
+  if (best.selectionPolicy !== 'governed_revenue_scope' || metric !== 'revenue') {
+    return 'Selected by annual freshness, tag priority, and period coverage.';
+  }
+
+  const newerOrEqualPeers = candidates.filter(candidate => {
+    const candidateYear = candidate.latestAnnualYear ?? -1;
+    const bestYear = best.latestAnnualYear ?? -1;
+    return candidateYear === bestYear;
+  });
+  const peerSummary = newerOrEqualPeers
+    .map(candidate => `${candidate.tagName}${candidate.conceptScope ? `(${candidate.conceptScope})` : ''}`)
+    .join(', ');
+
+  return [
+    'Revenue selected by governed concept scope.',
+    `Chosen tag ${best.tagName}${best.conceptScope ? ` (${best.conceptScope})` : ''} outranked equally current alternatives.`,
+    peerSummary ? `Equally current candidates considered: ${peerSummary}.` : '',
+  ].filter(Boolean).join(' ');
 }
 
 /**

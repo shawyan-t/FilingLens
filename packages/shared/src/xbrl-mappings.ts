@@ -7,9 +7,33 @@
  * Supports both US-GAAP tags (domestic filers: 10-K) and IFRS tags
  * (foreign private issuers: 20-F, Canadian: 40-F).
  *
- * Format: standardized name → array of possible XBRL tag names
- * Tags are searched in order across all namespaces; first match wins.
+ * Format: standardized name → array of possible XBRL tag names.
+ * Most metrics still use ordered tag priority. Concept families that are
+ * prone to materially different scopes can opt into governed selection.
  */
+
+export type ConceptSelectionPolicy = 'ordered_tag_priority' | 'governed_revenue_scope';
+export const XBRL_CONCEPT_SELECTION_VERSION = '2026-03-08-concept-contract-1';
+
+export type RevenueConceptScope =
+  | 'total_revenues'
+  | 'net_sales_revenue'
+  | 'contract_revenue_including_assessed_tax'
+  | 'contract_revenue_excluding_assessed_tax'
+  | 'revenues_and_other_income'
+  | 'operating_investment_income'
+  | 'goods_revenue'
+  | 'services_revenue';
+
+export interface GovernedTagProfile {
+  tag: string;
+  conceptScope: RevenueConceptScope;
+  /**
+   * Higher wins when periods are equally fresh.
+   * This is only used inside the governed concept policy.
+   */
+  conceptPriority: number;
+}
 
 export interface XBRLMapping {
   standardName: string;
@@ -18,6 +42,11 @@ export interface XBRLMapping {
   xbrlTags: string[];
   /** IFRS XBRL tag names for foreign filers, searched in order */
   ifrsTags: string[];
+  selectionPolicy?: ConceptSelectionPolicy;
+  /** Optional governed concept metadata for US-GAAP tags */
+  xbrlTagProfiles?: GovernedTagProfile[];
+  /** Optional governed concept metadata for IFRS tags */
+  ifrsTagProfiles?: GovernedTagProfile[];
   statement: 'income' | 'balance_sheet' | 'cash_flow';
   unit: 'USD' | 'USD/shares' | 'shares' | 'pure';
   higherIsBetter: boolean;
@@ -30,19 +59,34 @@ export const XBRL_MAPPINGS: XBRLMapping[] = [
   {
     standardName: 'revenue',
     displayName: 'Revenue',
+    selectionPolicy: 'governed_revenue_scope',
     xbrlTags: [
-      'RevenueFromContractWithCustomerExcludingAssessedTax',
       'Revenues',
       'SalesRevenueNet',
       'RevenueFromContractWithCustomerIncludingAssessedTax',
+      'RevenueFromContractWithCustomerExcludingAssessedTax',
+      'TotalRevenuesAndOtherIncome',
       'SalesRevenueGoodsNet',
       'SalesRevenueServicesNet',
       'InterestAndDividendIncomeOperating',
-      'TotalRevenuesAndOtherIncome',
     ],
     ifrsTags: [
       'Revenue',
       'RevenueFromContractsWithCustomers',
+    ],
+    xbrlTagProfiles: [
+      { tag: 'Revenues', conceptScope: 'total_revenues', conceptPriority: 100 },
+      { tag: 'SalesRevenueNet', conceptScope: 'net_sales_revenue', conceptPriority: 95 },
+      { tag: 'RevenueFromContractWithCustomerIncludingAssessedTax', conceptScope: 'contract_revenue_including_assessed_tax', conceptPriority: 90 },
+      { tag: 'RevenueFromContractWithCustomerExcludingAssessedTax', conceptScope: 'contract_revenue_excluding_assessed_tax', conceptPriority: 80 },
+      { tag: 'TotalRevenuesAndOtherIncome', conceptScope: 'revenues_and_other_income', conceptPriority: 70 },
+      { tag: 'InterestAndDividendIncomeOperating', conceptScope: 'operating_investment_income', conceptPriority: 60 },
+      { tag: 'SalesRevenueGoodsNet', conceptScope: 'goods_revenue', conceptPriority: 50 },
+      { tag: 'SalesRevenueServicesNet', conceptScope: 'services_revenue', conceptPriority: 45 },
+    ],
+    ifrsTagProfiles: [
+      { tag: 'Revenue', conceptScope: 'total_revenues', conceptPriority: 100 },
+      { tag: 'RevenueFromContractsWithCustomers', conceptScope: 'contract_revenue_excluding_assessed_tax', conceptPriority: 85 },
     ],
     statement: 'income',
     unit: 'USD',
@@ -313,12 +357,55 @@ export const XBRL_MAPPINGS: XBRLMapping[] = [
     displayName: 'Cash & Equivalents',
     xbrlTags: [
       'CashAndCashEquivalentsAtCarryingValue',
-      'CashCashEquivalentsAndShortTermInvestments',
       'Cash',
     ],
     ifrsTags: [
       'CashAndCashEquivalents',
       'Cash',
+    ],
+    statement: 'balance_sheet',
+    unit: 'USD',
+    higherIsBetter: true,
+  },
+  {
+    standardName: 'cash_and_equivalents_and_restricted_cash',
+    displayName: 'Cash, Cash Equivalents & Restricted Cash',
+    xbrlTags: [
+      'CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents',
+      'CashAndCashEquivalentsAndRestrictedCash',
+    ],
+    ifrsTags: [
+      'CashAndCashEquivalentsIncludingRestrictedCash',
+    ],
+    statement: 'balance_sheet',
+    unit: 'USD',
+    higherIsBetter: true,
+  },
+  {
+    standardName: 'cash_and_equivalents_and_short_term_investments',
+    displayName: 'Cash, Cash Equivalents & Short-Term Investments',
+    xbrlTags: [
+      'CashCashEquivalentsAndShortTermInvestments',
+    ],
+    ifrsTags: [
+      'CashAndShorttermInvestments',
+      'CashAndCashEquivalentsAndShorttermInvestments',
+    ],
+    statement: 'balance_sheet',
+    unit: 'USD',
+    higherIsBetter: true,
+  },
+  {
+    standardName: 'restricted_cash',
+    displayName: 'Restricted Cash',
+    xbrlTags: [
+      'RestrictedCashAndCashEquivalentsAtCarryingValue',
+      'RestrictedCashAndCashEquivalents',
+      'RestrictedCashCurrent',
+    ],
+    ifrsTags: [
+      'RestrictedCash',
+      'RestrictedCashAndCashEquivalents',
     ],
     statement: 'balance_sheet',
     unit: 'USD',
@@ -408,16 +495,27 @@ export const XBRL_MAPPINGS: XBRLMapping[] = [
     higherIsBetter: true,
   },
   {
+    standardName: 'short_term_investments',
+    displayName: 'Short-Term Investments',
+    xbrlTags: [
+      'ShortTermInvestments',
+    ],
+    ifrsTags: [
+      'ShorttermInvestments',
+    ],
+    statement: 'balance_sheet',
+    unit: 'USD',
+    higherIsBetter: true,
+  },
+  {
     standardName: 'marketable_securities',
     displayName: 'Marketable Securities',
     xbrlTags: [
       'MarketableSecuritiesCurrent',
       'AvailableForSaleSecuritiesCurrent',
-      'ShortTermInvestments',
     ],
     ifrsTags: [
       'CurrentFinancialAssetsAtFairValueThroughProfitOrLoss',
-      'ShorttermInvestments',
     ],
     statement: 'balance_sheet',
     unit: 'USD',
@@ -755,4 +853,13 @@ export function getMappingByName(standardName: string): XBRLMapping | undefined 
  */
 export function getMappingsForStatement(statement: 'income' | 'balance_sheet' | 'cash_flow'): XBRLMapping[] {
   return XBRL_MAPPINGS.filter(m => m.statement === statement);
+}
+
+export function getGovernedTagProfile(
+  mapping: XBRLMapping,
+  namespace: 'us-gaap' | 'ifrs-full',
+  tagName: string,
+): GovernedTagProfile | undefined {
+  const profiles = namespace === 'us-gaap' ? mapping.xbrlTagProfiles : mapping.ifrsTagProfiles;
+  return profiles?.find(profile => profile.tag === tagName);
 }

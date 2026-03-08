@@ -120,7 +120,7 @@
     {
       "id": "analyst_notes",
       "title": "Analyst Notes",
-      "rendered_content": "### Analyst Follow-Up\n- Peer conclusions should be read through the locked annual basis, surfaced metric coverage, and explicit comparison-governance policy.\n\n- **AMD:** 2 strength signals and 4 active risk signals in the locked annual basis.\n- **NVDA:** 4 strength signals and 5 active risk signals in the locked annual basis.\n- Prioritize next-pass work on margin durability, balance-sheet flexibility, and cash conversion differentials across the peer set.",
+      "rendered_content": "### Analyst Follow-Up\n- Peer conclusions should be read through the locked annual basis, surfaced metric coverage, and explicit comparison-governance policy.\n\n- **AMD:** 2 strength signals and 4 active risk signals in the locked annual basis.\n- **NVDA:** 4 strength signals and 6 active risk signals in the locked annual basis.\n- Prioritize next-pass work on margin durability, balance-sheet flexibility, and cash conversion differentials across the peer set.",
       "paragraphs": [
         {
           "text": "- Peer conclusions should be read through the locked annual basis, surfaced metric coverage, and explicit comparison-governance policy.",
@@ -139,7 +139,7 @@
           ]
         },
         {
-          "text": "- **NVDA:** 4 strength signals and 5 active risk signals in the locked annual basis.",
+          "text": "- **NVDA:** 4 strength signals and 6 active risk signals in the locked annual basis.",
           "fact_ids": [
             "revenue",
             "net_income"

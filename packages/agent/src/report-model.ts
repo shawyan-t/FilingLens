@@ -18,7 +18,7 @@ import type { AnalysisInsights, LedgerMetric } from './analyzer.js';
 import {
   buildCanonicalAnnualPeriodMap,
   buildCanonicalAnnualSourceMap,
-  normalizeMetricValue,
+  hasCashPresentationAlternative,
   type CanonicalFactSource,
 } from './report-facts.js';
 import { INSTITUTIONAL_DEFAULTS } from './report-policy.js';
@@ -44,6 +44,11 @@ export interface CanonicalMetricCell {
 export interface CanonicalMetricGroup {
   title: string;
   rows: CanonicalMetricCell[];
+}
+
+export interface CanonicalMetricGroupContract {
+  title: string;
+  rowLabels: string[];
 }
 
 export interface CanonicalStatementRow {
@@ -95,6 +100,7 @@ export interface CompanyReportModel {
   dashboardGroups: CanonicalMetricGroup[];
   comparisonGroups: CanonicalMetricGroup[];
   statementTables: CanonicalStatementTable[];
+  appendixSupportNotes: string[];
   canonicalPeriodMap: Map<string, Record<string, number>>;
   sourceMap: Map<string, Record<string, CanonicalFactSource>>;
   filingReferences: CanonicalFilingReference[];
@@ -104,6 +110,7 @@ export interface CompanyReportModel {
 export interface ReportModel {
   type: 'single' | 'comparison';
   comparisonBasis: ComparisonBasisResolution | null;
+  comparisonRowGroups: CanonicalMetricGroupContract[];
   companies: CompanyReportModel[];
   companiesByTicker: Map<string, CompanyReportModel>;
 }
@@ -127,11 +134,15 @@ const METRIC_GROUPS: Array<{ title: string; metrics: string[] }> = [
       'Current Assets',
       'Current Liabilities',
       'Cash & Equivalents',
+      'Cash, Cash Equivalents & Restricted Cash',
+      'Restricted Cash',
+      'Cash, Cash Equivalents & Short-Term Investments',
+      'Short-Term Investments',
+      'Marketable Securities',
       'Long-Term Debt',
       'Short-Term Debt',
       'Total Debt',
       'Current Ratio',
-      'Quick Ratio',
       'Debt-to-Equity',
     ],
   },
@@ -145,18 +156,15 @@ const METRIC_GROUPS: Array<{ title: string; metrics: string[] }> = [
       'Total Assets',
       'Total Liabilities',
       "Stockholders' Equity",
-      'Shares Outstanding',
     ],
   },
   {
     title: 'Cash Flow & Per Share',
     metrics: [
       'Operating Cash Flow',
+      'Cash at End of Period (cash-flow statement)',
       'Capital Expenditures',
       'Free Cash Flow',
-      'Working Capital',
-      'Asset Turnover',
-      'Book Value Per Share',
     ],
   },
 ];
@@ -180,19 +188,36 @@ const CONTRA_ACCOUNT_METRICS = new Set([
   'treasury_stock',
 ]);
 
+const CASH_FAMILY_DUPLICATE_PREFERENCES = [
+  {
+    primary: 'cash_and_equivalents',
+    duplicate: 'cash_and_equivalents_and_restricted_cash',
+  },
+  {
+    primary: 'cash_and_equivalents',
+    duplicate: 'cash_and_equivalents_and_short_term_investments',
+  },
+] as const;
+
 const DEFAULT_REPORT_MODEL_POLICY: ReportingPolicy = { ...INSTITUTIONAL_DEFAULTS };
 
 export function buildReportModel(
   context: AnalysisContext,
   insights: Record<string, AnalysisInsights>,
 ): ReportModel {
-  const companies = context.tickers.map(ticker => buildCompanyReportModel(context, insights, ticker));
+  const baseCompanies = context.tickers.map(ticker => buildCompanyReportModel(context, insights, ticker));
+  const comparisonRowGroups = buildComparisonRowGroups(baseCompanies);
+  const companies = baseCompanies.map(company => ({
+    ...company,
+    comparisonGroups: applyComparisonRowGroups(company, comparisonRowGroups),
+  }));
   return {
     type: context.type,
     comparisonBasis: context.comparison_basis || null,
+    comparisonRowGroups,
     companies,
     companiesByTicker: new Map(companies.map(company => [company.ticker, company])),
-  };
+  } satisfies ReportModel;
 }
 
 export function buildCompanyReportModel(
@@ -203,18 +228,10 @@ export function buildCompanyReportModel(
   const insight = insights[ticker];
   const canonicalPeriodMap = buildCanonicalAnnualPeriodMap(context, ticker);
   const sourceMap = buildCanonicalAnnualSourceMap(context, ticker);
-  const metricCells = buildMetricCells(insight);
+  const metricCells = suppressDuplicateCashFamilyCells(buildMetricCells(insight));
   const dashboardGroups = buildMetricGroups(metricCells);
-  const comparisonGroups = buildComparisonGroups(metricCells);
   const statementTables = buildStatementTables(context, ticker, insight, canonicalPeriodMap, sourceMap);
-  const filingReferences = collectFilingReferences(
-    context,
-    ticker,
-    sourceMap,
-    selectedPeriodsForSources(statementTables, insight?.snapshotPeriod, insight?.priorPeriod),
-  );
-
-  return {
+  const baseCompany = {
     ticker,
     companyName: context.facts[ticker]?.company_name || ticker,
     policy: context.policy || DEFAULT_REPORT_MODEL_POLICY,
@@ -227,12 +244,24 @@ export function buildCompanyReportModel(
     metrics: metricCells,
     metricsByLabel: new Map(metricCells.map(metric => [metric.label, metric])),
     dashboardGroups,
-    comparisonGroups,
+    comparisonGroups: [],
     statementTables,
+    appendixSupportNotes: [] as string[],
     canonicalPeriodMap,
     sourceMap,
-    filingReferences,
+    filingReferences: [] as CanonicalFilingReference[],
     alignedFiling: selectAlignedFiling(context, ticker, sourceMap, insight?.snapshotPeriod ?? null),
+  } satisfies CompanyReportModel;
+  const filingReferences = collectFilingReferences(
+    context,
+    ticker,
+    sourceMap,
+    selectedPeriodsForSources(insight?.snapshotPeriod ?? null, insight?.priorPeriod ?? null),
+  );
+  return {
+    ...baseCompany,
+    appendixSupportNotes: buildAppendixSupportNotes(baseCompany),
+    filingReferences,
   };
 }
 
@@ -260,33 +289,57 @@ function buildMetricCells(insight?: AnalysisInsights): CanonicalMetricCell[] {
     .sort((a, b) => a.label.localeCompare(b.label));
 }
 
-function buildMetricGroups(metricCells: CanonicalMetricCell[]): CanonicalMetricGroup[] {
-  const used = new Set<string>();
-  const metricMap = new Map(metricCells.map(metric => [metric.label, metric]));
+function suppressDuplicateCashFamilyCells(
+  metricCells: CanonicalMetricCell[],
+): CanonicalMetricCell[] {
+  const byKey = new Map(metricCells.map(metric => [metric.key, metric]));
+  const suppressed = new Set<string>();
 
-  const groups = METRIC_GROUPS.map(group => {
-    const rows = group.metrics
-      .map(name => metricMap.get(name) || null)
-      .filter((metric): metric is CanonicalMetricCell => !!metric && metric.current !== null);
-    for (const row of rows) used.add(row.label);
-    return { title: group.title, rows };
-  });
-
-  const extras = metricCells
-    .filter(metric => !used.has(metric.label) && metric.current !== null)
-    .sort((a, b) => a.label.localeCompare(b.label));
-  if (extras.length >= 3) {
-    groups.push({ title: 'Additional Metrics', rows: extras });
+  for (const preference of CASH_FAMILY_DUPLICATE_PREFERENCES) {
+    const primary = byKey.get(preference.primary);
+    const duplicate = byKey.get(preference.duplicate);
+    if (!primary || !duplicate) continue;
+    if (cashMetricCellsEquivalent(primary, duplicate)) {
+      suppressed.add(duplicate.key);
+    }
   }
 
-  return groups.filter(group => group.rows.length > 0);
+  return metricCells.filter(metric => !suppressed.has(metric.key));
 }
 
-function buildComparisonGroups(metricCells: CanonicalMetricCell[]): CanonicalMetricGroup[] {
-  return buildMetricGroups(metricCells).map(group => ({
-    title: group.title,
-    rows: group.rows.filter(row => row.current !== null),
-  })).filter(group => group.rows.length > 0);
+function cashMetricCellsEquivalent(
+  left: CanonicalMetricCell,
+  right: CanonicalMetricCell,
+): boolean {
+  const pairs: Array<[number | null, number | null]> = [
+    [left.current, right.current],
+    [left.prior, right.prior],
+  ];
+  let compared = 0;
+  for (const [a, b] of pairs) {
+    if (a === null && b === null) continue;
+    if (a === null || b === null) return false;
+    compared += 1;
+    if (!materiallyEquivalent(a, b)) return false;
+  }
+  return compared > 0;
+}
+
+function materiallyEquivalent(a: number, b: number): boolean {
+  const delta = Math.abs(a - b);
+  return delta <= Math.max(Math.abs(a), Math.abs(b), 1) * 0.01 + 100_000;
+}
+
+function buildMetricGroups(metricCells: CanonicalMetricCell[]): CanonicalMetricGroup[] {
+  const metricMap = new Map(metricCells.map(metric => [metric.label, metric]));
+  return metricGroupContract()
+    .map(group => ({
+      title: group.title,
+      rows: group.rowLabels
+        .map(label => metricMap.get(label) || null)
+        .filter((metric): metric is CanonicalMetricCell => !!metric),
+    }))
+    .filter(group => group.rows.length > 0);
 }
 
 function buildStatementTables(
@@ -307,8 +360,8 @@ function buildStatementTables(
 }
 
 function buildStatementTable(
-  context: AnalysisContext,
-  ticker: string,
+  _context: AnalysisContext,
+  _ticker: string,
   statementType: FinancialStatement['statement_type'],
   title: string,
   insight: AnalysisInsights | undefined,
@@ -318,38 +371,32 @@ function buildStatementTable(
   const periods = selectStatementPeriods(canonicalPeriodMap, insight?.snapshotPeriod ?? null, insight?.priorPeriod ?? null);
   if (periods.length === 0) return null;
 
-  const statement = (context.statements[ticker] || []).find(s => s.statement_type === statementType);
-  const statementData = new Map<string, Record<string, number>>();
-  for (const period of statement?.periods || []) {
-    statementData.set(period.period, period.data);
-  }
-
   const orderedKeys = new Set<string>();
   for (const mapping of getMappingsForStatement(statementType)) {
-    if (periods.some(period => getStatementMetricValue(canonicalPeriodMap, sourceMap, statementData, period, mapping.standardName) !== null)) {
+    if (periods.some(period => getStatementMetricValue(canonicalPeriodMap, sourceMap, period, mapping.standardName) !== null)) {
       orderedKeys.add(mapping.standardName);
     }
   }
 
-  for (const period of periods) {
-    const row = statementData.get(period);
-    if (!row) continue;
-    for (const metric of Object.keys(row)) {
-      if (periods.some(selected => getStatementMetricValue(canonicalPeriodMap, sourceMap, statementData, selected, metric) !== null)) {
-        orderedKeys.add(metric);
-      }
-    }
-  }
-
   const rows: CanonicalStatementRow[] = [];
+  const currentPeriod = insight?.snapshotPeriod ?? periods[0] ?? null;
   for (const key of orderedKeys) {
     const mapping = getMappingByName(key);
-    const values = periods.map(period => getStatementMetricValue(canonicalPeriodMap, sourceMap, statementData, period, key));
+    const values = periods.map(period => getStatementMetricValue(canonicalPeriodMap, sourceMap, period, key));
     if (values.every(value => value === null)) continue;
+    if (isDuplicateCashFamilyStatementRow(key, periods, canonicalPeriodMap, sourceMap)) {
+      continue;
+    }
+    if (
+      currentPeriod
+      && values[0] === null
+      && hasCashPresentationAlternative(canonicalPeriodMap.get(currentPeriod), key)
+    ) {
+      continue;
+    }
     const sourceKinds = periods
-      .map(period => sourceKindLabel(canonicalPeriodMap, sourceMap, statementData, period, key))
+      .map(period => sourceKindLabel(canonicalPeriodMap, sourceMap, period, key))
       .filter((kind): kind is string => !!kind);
-    if (sourceKinds.length > 0 && sourceKinds.every(kind => kind === 'derived')) continue;
     rows.push({
       key,
       label: decorateStatementLabel(key, mapping?.displayName || humanizeMetricKey(key), sourceKinds),
@@ -373,18 +420,18 @@ function buildStatementTable(
 function getStatementMetricValue(
   canonicalPeriodMap: Map<string, Record<string, number>>,
   sourceMap: Map<string, Record<string, CanonicalFactSource>>,
-  statementData: Map<string, Record<string, number>>,
   period: string,
   metric: string,
 ): number | null {
   const source = sourceMap.get(period)?.[metric];
   const canonical = canonicalPeriodMap.get(period)?.[metric];
-  if (source?.kind === 'adjusted' && canonical !== undefined && isFinite(canonical)) return canonical;
-
-  const raw = statementData.get(period)?.[metric];
-  if (raw !== undefined && raw !== null && isFinite(raw)) return normalizeMetricValue(metric, raw);
-
-  if ((source?.kind === 'xbrl' || source?.kind === 'statement') && canonical !== undefined && isFinite(canonical)) {
+  if (!source || canonical === undefined || canonical === null || !isFinite(canonical)) return null;
+  if (
+    source.kind === 'adjusted'
+    || source.kind === 'xbrl'
+    || source.kind === 'statement'
+    || source.kind === 'derived'
+  ) {
     return canonical;
   }
   return null;
@@ -393,7 +440,6 @@ function getStatementMetricValue(
 function sourceKindLabel(
   canonicalPeriodMap: Map<string, Record<string, number>>,
   sourceMap: Map<string, Record<string, CanonicalFactSource>>,
-  statementData: Map<string, Record<string, number>>,
   period: string,
   metric: string,
 ): string | null {
@@ -401,11 +447,35 @@ function sourceKindLabel(
   if (source?.kind === 'adjusted' && canonicalPeriodMap.get(period)?.[metric] !== undefined) {
     return 'adjusted';
   }
-  if (statementData.get(period)?.[metric] !== undefined) return 'statement';
   if (canonicalPeriodMap.get(period)?.[metric] !== undefined) {
     if (source?.kind) return source.kind;
   }
   return null;
+}
+
+function isDuplicateCashFamilyStatementRow(
+  key: string,
+  periods: string[],
+  canonicalPeriodMap: Map<string, Record<string, number>>,
+  sourceMap: Map<string, Record<string, CanonicalFactSource>>,
+): boolean {
+  const preference = CASH_FAMILY_DUPLICATE_PREFERENCES.find(item => item.duplicate === key);
+  if (!preference) return false;
+
+  const candidateValues = periods.map(period => getStatementMetricValue(canonicalPeriodMap, sourceMap, period, key));
+  const primaryValues = periods.map(period => getStatementMetricValue(canonicalPeriodMap, sourceMap, period, preference.primary));
+
+  let compared = 0;
+  for (let idx = 0; idx < candidateValues.length; idx++) {
+    const candidate = candidateValues[idx];
+    const primary = primaryValues[idx];
+    if (candidate === null && primary === null) continue;
+    if (candidate === null || primary === null) return false;
+    compared += 1;
+    if (!materiallyEquivalent(candidate, primary)) return false;
+  }
+
+  return compared > 0;
 }
 
 function selectStatementPeriods(
@@ -413,31 +483,81 @@ function selectStatementPeriods(
   snapshotPeriod: string | null,
   priorPeriod: string | null,
 ): string[] {
-  const all = Array.from(canonicalPeriodMap.keys()).sort((a, b) => b.localeCompare(a));
   const chosen: string[] = [];
   if (snapshotPeriod && canonicalPeriodMap.has(snapshotPeriod)) chosen.push(snapshotPeriod);
   if (priorPeriod && canonicalPeriodMap.has(priorPeriod) && !chosen.includes(priorPeriod)) chosen.push(priorPeriod);
-  for (const period of all) {
-    if (chosen.length >= 3) break;
-    if (!chosen.includes(period)) chosen.push(period);
-  }
-  return chosen.slice(0, 3);
+  return chosen.slice(0, 2);
 }
 
 function selectedPeriodsForSources(
-  statementTables: CanonicalStatementTable[],
   snapshotPeriod: string | null,
   priorPeriod: string | null,
 ): string[] {
   const periods = new Set<string>();
   if (snapshotPeriod) periods.add(snapshotPeriod);
   if (priorPeriod) periods.add(priorPeriod);
-  for (const table of statementTables) {
-    for (const period of table.periods) {
-      periods.add(period);
-    }
-  }
   return Array.from(periods);
+}
+
+function metricGroupContract(): CanonicalMetricGroupContract[] {
+  return METRIC_GROUPS.map(group => ({
+    title: group.title,
+    rowLabels: [...group.metrics],
+  }));
+}
+
+function buildComparisonRowGroups(
+  _companies: CompanyReportModel[],
+): CanonicalMetricGroupContract[] {
+  return metricGroupContract();
+}
+
+function applyComparisonRowGroups(
+  company: CompanyReportModel,
+  comparisonRowGroups: CanonicalMetricGroupContract[],
+): CanonicalMetricGroup[] {
+  return comparisonRowGroups.map(group => ({
+    title: group.title,
+    rows: group.rowLabels
+      .map(label => company.metricsByLabel.get(label) || null)
+      .filter((metric): metric is CanonicalMetricCell => !!metric),
+  }));
+}
+
+function buildAppendixSupportNotes(company: CompanyReportModel): string[] {
+  const periods = [company.snapshotLabel, company.priorLabel]
+    .filter(label => label && label !== 'N/A')
+    .join(' and ');
+  const basisNotes = company.metrics
+    .map(metric => metric.basis)
+    .filter((basis): basis is NonNullable<CanonicalMetricCell['basis']> => !!basis)
+    .filter((basis, idx, arr) => (
+      arr.findIndex(other =>
+        other.displayName === basis.displayName
+        && other.basis === basis.basis
+        && other.disclosureText === basis.disclosureText
+        && other.note === basis.note
+      ) === idx
+    ))
+    .slice(0, 2)
+    .map(basis => `${basis.displayName}: ${(basis.disclosureText || basis.note || basis.basis).replace(/[.\s]+$/g, '')}.`);
+
+  const notes = [
+    periods
+      ? `Locked annual appendix basis uses ${periods}.`
+      : 'Locked annual appendix basis is applied uniformly to the reported current and prior periods.',
+    'Appendix rows are limited to the central statement mapping catalog on the locked annual periods; raw statement extras are never surfaced directly.',
+    'Cash-family concepts preserve the filing labels directly, and the cash-flow ending balance remains a separate concept unless the filing reports the same cash-family line on the balance sheet.',
+    'Unavailable cells mean the locked filing basis did not report the value and no governed derivation was approved for display.',
+    ...basisNotes,
+    `Primary filing anchor: ${company.alignedFiling?.form || 'annual filing'}${company.alignedFiling?.filed ? ` filed ${company.alignedFiling.filed}` : ''}.`,
+  ];
+
+  if (company.fxNote) {
+    notes.push(`FX note: ${company.fxNote}.`);
+  }
+
+  return notes;
 }
 
 function collectFilingReferences(
@@ -514,6 +634,15 @@ function selectAlignedFiling(
     filed: best.filed || null,
     period: snapshotPeriod,
   };
+}
+
+export function resolveAlignedFilingForTicker(
+  context: AnalysisContext,
+  ticker: string,
+  snapshotPeriod: string | null,
+): CanonicalAlignedFiling | null {
+  const sourceMap = buildCanonicalAnnualSourceMap(context, ticker);
+  return selectAlignedFiling(context, ticker, sourceMap, snapshotPeriod);
 }
 
 function resolvePrimaryDocumentUrl(
@@ -623,3 +752,4 @@ function formatStatementValue(metric: string, value: number, unit?: string): str
   }
   return formatByUnit(value, unit);
 }
+

@@ -3,8 +3,8 @@
     {
       "key": "asset_turnover",
       "label": "Asset Turnover",
-      "current": "0.41x",
-      "prior": "0.36x",
+      "current": "0.46x",
+      "prior": "0.45x",
       "basis": {
         "metric": "asset_turnover",
         "displayName": "Asset Turnover",
@@ -22,84 +22,19 @@
         "metric": "bvps",
         "displayName": "Book Value Per Share",
         "basis": "period_end_shares",
-        "note": "BVPS uses period-end shares outstanding."
+        "note": "BVPS uses period-end shares outstanding.",
+        "disclosureText": "Book Value Per Share uses period-end shares outstanding.",
+        "alternativesConsidered": [
+          "weighted_average_diluted"
+        ]
       },
       "note": "BVPS uses period-end shares outstanding."
-    },
-    {
-      "key": "capex_to_revenue",
-      "label": "CapEx / Revenue",
-      "current": "13.0%",
-      "prior": "13.5%",
-      "basis": null,
-      "note": null
-    },
-    {
-      "key": "cash_ratio",
-      "label": "Cash Ratio",
-      "current": "0.46x",
-      "prior": "0.44x",
-      "basis": null,
-      "note": null
-    },
-    {
-      "key": "cfo_to_net_income",
-      "label": "CFO / Net Income",
-      "current": "1.83x",
-      "prior": "-0.66x",
-      "basis": null,
-      "note": null
-    },
-    {
-      "key": "cfo_margin",
-      "label": "CFO Margin",
-      "current": "18.7%",
-      "prior": "-13.0%",
-      "basis": null,
-      "note": null
     },
     {
       "key": "current_ratio",
       "label": "Current Ratio",
       "current": "1.53x",
       "prior": "1.57x",
-      "basis": null,
-      "note": null
-    },
-    {
-      "key": "debt_maturity_current_pct",
-      "label": "Debt Maturity (Current %)",
-      "current": "22.8%",
-      "prior": "0.0%",
-      "basis": null,
-      "note": null
-    },
-    {
-      "key": "ebitda",
-      "label": "EBITDA",
-      "current": "$4.07B",
-      "prior": "$5.51B",
-      "basis": null,
-      "note": null
-    },
-    {
-      "key": "equity_multiplier",
-      "label": "Equity Multiplier",
-      "current": "3.88x",
-      "prior": "3.91x",
-      "basis": {
-        "metric": "equity_multiplier",
-        "displayName": "Equity Multiplier",
-        "basis": "average_balance",
-        "note": "Equity multiplier uses average assets and average equity for the locked current period."
-      },
-      "note": "Average-balance capital-structure policy applied."
-    },
-    {
-      "key": "fcf_margin",
-      "label": "FCF Margin",
-      "current": "5.7%",
-      "prior": "-26.5%",
       "basis": null,
       "note": null
     },
@@ -112,26 +47,18 @@
       "note": null
     },
     {
-      "key": "net_debt",
-      "label": "Net Debt",
-      "current": "$3.61B",
-      "prior": "$4.36B",
-      "basis": null,
-      "note": null
-    },
-    {
       "key": "net_margin",
       "label": "Net Margin",
-      "current": "10.2%",
-      "prior": "19.8%",
+      "current": "9.1%",
+      "prior": "15.9%",
       "basis": null,
       "note": null
     },
     {
       "key": "operating_margin",
       "label": "Operating Margin",
-      "current": "13.6%",
-      "prior": "22.9%",
+      "current": "12.1%",
+      "prior": "18.5%",
       "basis": null,
       "note": null
     },
@@ -170,12 +97,12 @@
       "note": "Average-balance return policy applied."
     },
     {
-      "key": "roic_proxy",
-      "label": "ROIC Proxy",
-      "current": "14.0%",
-      "prior": "20.8%",
+      "key": "total_debt",
+      "label": "Total Debt",
+      "current": "$9.05B",
+      "prior": "$8.47B",
       "basis": null,
-      "note": null
+      "note": "Total Debt uses reported total debt when available, otherwise long-term debt plus short-term debt."
     },
     {
       "key": "working_capital",
