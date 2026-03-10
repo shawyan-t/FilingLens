@@ -1,0 +1,34 @@
+{
+  "status": "pass",
+  "pass": true,
+  "failures": [
+    {
+      "gate": "data.no_fake_na",
+      "severity": "warning",
+      "source": "dashboard:Cash, Cash Equivalents & Restricted Cash",
+      "message": "Current value is N/A in dashboard but computable in canonical metrics."
+    },
+    {
+      "gate": "data.no_fake_na",
+      "severity": "warning",
+      "source": "dashboard:Cash, Cash Equivalents & Restricted Cash",
+      "message": "Prior value is N/A in dashboard but computable in canonical metrics."
+    }
+  ],
+  "mappingFixes": [
+    "NVDA: Anomaly in Gross Profit — Significant spike: 188.5% YoY change (2.1σ from mean) (period: 2024-01-28)"
+  ],
+  "recomputedMetrics": {
+    "NVDA": [
+      "Free Cash Flow (prior)",
+      "Diluted EPS (prior)",
+      "Book Value Per Share (prior)"
+    ]
+  },
+  "periodBasis": {
+    "NVDA": {
+      "current": "2026-01-25",
+      "prior": "2025-01-26"
+    }
+  }
+}

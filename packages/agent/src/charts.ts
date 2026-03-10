@@ -7,8 +7,8 @@
  * Pure string-based SVG construction, no external dependencies.
  */
 
-import type { AnalysisContext, TrendData, CompanyFacts } from '@dolph/shared';
 import { formatCompactCurrency } from '@dolph/shared';
+import type { CompanyReportModel, ReportModel } from './report-model.js';
 
 // ── Color palette ─────────────────────────────────────────────
 
@@ -41,98 +41,74 @@ export interface ChartPeriodLock {
   prior: string | null;
 }
 
-/**
- * Generate all applicable charts for a report.
- * Returns SVG strings ready to embed in HTML.
- */
-export function generateCharts(context: AnalysisContext): ChartSet {
-  return generateChartsWithLocks(context);
-}
-
-export function generateChartsWithLocks(
-  context: AnalysisContext,
-  periodLocks: Record<string, ChartPeriodLock> = {},
+export function generateChartsForReportModel(
+  reportModel: ReportModel,
 ): ChartSet {
-  const ticker = context.tickers[0]!;
-  const primaryLock = periodLocks[ticker];
+  const company = reportModel.companies[0];
+  if (!company) {
+    return {
+      revenueMarginChart: null,
+      fcfBridgeChart: null,
+    };
+  }
 
   return {
-    revenueMarginChart: buildRevenueMarginChart(context, ticker, primaryLock),
-    fcfBridgeChart: buildFCFBridgeChart(context, ticker, primaryLock),
+    revenueMarginChart: buildRevenueMarginChartFromCompany(company),
+    fcfBridgeChart: buildFCFBridgeChartFromCompany(company),
   };
 }
 
-// ── 1. Revenue + Margin Chart (Dual-Axis) ─────────────────────
-
-function buildRevenueMarginChart(
-  context: AnalysisContext,
-  ticker: string,
-  periodLock?: ChartPeriodLock,
+function buildRevenueMarginChartFromCompany(
+  company: CompanyReportModel,
 ): string | null {
-  const trends = context.trends[ticker] || [];
-  const revenueTrend = trends.find(t => t.metric === 'revenue');
-  if (!revenueTrend || revenueTrend.values.length < 2) return null;
+  const periods = selectCompanyChartPeriods(company, 5);
+  if (periods.length < 2) return null;
 
-  const periods = selectAnnualChartValues(revenueTrend.values, 5, periodLock?.current ?? null);
-  const n = periods.length;
-  if (n < 2) return null;
+  const series = periods
+    .map(period => {
+      const values = company.canonicalPeriodMap.get(period) || {};
+      const revenue = finiteOrNull(values['revenue']);
+      if (revenue === null) return null;
+      return {
+        period,
+        revenue,
+        grossMargin: safeDivideValue(values['gross_profit'], values['revenue']),
+        operatingMargin: safeDivideValue(values['operating_income'], values['revenue']),
+        netMargin: safeDivideValue(values['net_income'], values['revenue']),
+      };
+    })
+    .filter((entry): entry is NonNullable<typeof entry> => !!entry);
 
-  // Gather income trends to compute margins per period
-  const opIncomeTrend = trends.find(t => t.metric === 'operating_income');
-  const netIncomeTrend = trends.find(t => t.metric === 'net_income');
-  const grossProfitTrend = trends.find(t => t.metric === 'gross_profit');
+  if (series.length < 2) return null;
 
-  type MarginLine = { label: string; color: string; dash?: string; values: (number | null)[] };
-  const marginLines: MarginLine[] = [];
-
-  function buildMarginLine(
-    trend: TrendData | undefined,
-    label: string,
-    color: string,
-    dash?: string,
-  ): MarginLine | null {
-    if (!trend) return null;
-    const values = periods.map(p => {
-      const match = trend.values.find(v => v.period === p.period);
-      if (!match || p.value <= 0) return null;
-      return match.value / p.value;
-    });
-    if (values.every(v => v === null)) return null;
-    return { label, color, dash, values };
-  }
-
-  const gross = buildMarginLine(grossProfitTrend, 'Gross Margin', COLORS.accent);
-  const operating = buildMarginLine(opIncomeTrend, 'Op. Margin', COLORS.secondary);
-  const net = buildMarginLine(netIncomeTrend, 'Net Margin', COLORS.warning, '4,3');
-
-  if (gross) marginLines.push(gross);
-  if (operating) marginLines.push(operating);
-  if (net) marginLines.push(net);
-
-  // Chart layout — right padding for margin axis
+  const n = series.length;
   const pad = { top: 30, right: 60, bottom: 50, left: 80 };
   const plotW = CHART_WIDTH - pad.left - pad.right;
   const plotH = CHART_HEIGHT - pad.top - pad.bottom;
-
-  // Revenue scale (left Y-axis)
-  const revenues = periods.map(p => p.value);
+  const revenues = series.map(point => point.revenue);
   const maxRev = Math.max(...revenues);
   const revCeil = niceMax(maxRev);
 
-  // Margin scale (right Y-axis) — 0% to max margin rounded up
-  const allMargins = marginLines.flatMap(l => l.values.filter(v => v !== null) as number[]);
+  type MarginLine = { label: string; color: string; dash?: string; values: (number | null)[] };
+  const marginLines: MarginLine[] = [];
+  const gross = { label: 'Gross Margin', color: COLORS.accent, values: series.map(point => point.grossMargin) };
+  const operating = { label: 'Op. Margin', color: COLORS.secondary, values: series.map(point => point.operatingMargin) };
+  const net = { label: 'Net Margin', color: COLORS.warning, dash: '4,3', values: series.map(point => point.netMargin) };
+  if (gross.values.some(value => value !== null)) marginLines.push(gross);
+  if (operating.values.some(value => value !== null)) marginLines.push(operating);
+  if (net.values.some(value => value !== null)) marginLines.push(net);
+
+  const allMargins = marginLines.flatMap(line => line.values.filter((value): value is number => value !== null));
   const maxMarginPct = allMargins.length > 0 ? Math.max(...allMargins) * 100 : 50;
   const marginCeil = Math.ceil(maxMarginPct / 10) * 10 + 10;
 
   const barSpacing = plotW / n;
   const barWidth = barSpacing * 0.55;
-
   const parts: string[] = [];
   parts.push(svgOpen(CHART_WIDTH, CHART_HEIGHT));
   parts.push(svgBg(CHART_WIDTH, CHART_HEIGHT));
-  parts.push(svgTitle(`${escSvg(ticker)} — Revenue &amp; Margin Profile`, CHART_WIDTH));
+  parts.push(svgTitle(`${escSvg(company.ticker)} — Revenue &amp; Margin Profile`, CHART_WIDTH));
 
-  // Left Y-axis grid + labels (Revenue)
   const yTicks = 5;
   for (let i = 0; i <= yTicks; i++) {
     const y = pad.top + (plotH * i / yTicks);
@@ -140,29 +116,23 @@ function buildRevenueMarginChart(
     parts.push(`<line x1="${pad.left}" y1="${y}" x2="${pad.left + plotW}" y2="${y}" stroke="${COLORS.gridLine}" stroke-width="0.5"/>`);
     parts.push(`<text x="${pad.left - 8}" y="${y + 3}" text-anchor="end" font-family="Times New Roman, Times, serif" font-size="9" fill="${COLORS.gray}">${formatAxisValue(value)}</text>`);
   }
-
-  // Right Y-axis labels (Margin %)
   for (let i = 0; i <= yTicks; i++) {
     const y = pad.top + (plotH * i / yTicks);
     const pct = marginCeil * (1 - i / yTicks);
     parts.push(`<text x="${pad.left + plotW + 8}" y="${y + 3}" text-anchor="start" font-family="Times New Roman, Times, serif" font-size="9" fill="${COLORS.gray}">${pct.toFixed(0)}%</text>`);
   }
 
-  // Revenue bars
   for (let i = 0; i < n; i++) {
     const x = pad.left + i * barSpacing + (barSpacing - barWidth) / 2;
     const barH = (revenues[i]! / revCeil) * plotH;
     const y = pad.top + plotH - barH;
     parts.push(`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barWidth.toFixed(1)}" height="${barH.toFixed(1)}" fill="${COLORS.primary}" rx="2" opacity="0.75"/>`);
   }
-
-  // X-axis labels
   for (let i = 0; i < n; i++) {
     const x = pad.left + i * barSpacing + barSpacing / 2;
-    parts.push(`<text x="${x}" y="${pad.top + plotH + 16}" text-anchor="middle" font-family="Times New Roman, Times, serif" font-size="9" fill="${COLORS.gray}">${escSvg(formatPeriodShort(periods[i]!.period))}</text>`);
+    parts.push(`<text x="${x}" y="${pad.top + plotH + 16}" text-anchor="middle" font-family="Times New Roman, Times, serif" font-size="9" fill="${COLORS.gray}">${escSvg(formatPeriodShort(series[i]!.period))}</text>`);
   }
 
-  // Margin overlay lines
   for (const ml of marginLines) {
     const points: string[] = [];
     for (let i = 0; i < n; i++) {
@@ -181,52 +151,27 @@ function buildRevenueMarginChart(
     }
   }
 
-  // Legend
   const legendItems: LegendItem[] = [
     { label: 'Revenue', color: COLORS.primary, type: 'rect' },
     ...marginLines.map(ml => ({ label: ml.label, color: ml.color, type: 'line' as const })),
   ];
   parts.push(buildLegend(legendItems, pad.left, pad.top + plotH + 34));
-
   parts.push('</svg>');
   return parts.join('\n');
 }
 
-// ── 2. FCF Bridge Waterfall ───────────────────────────────────
-
-function getFactValue(
-  facts: CompanyFacts,
-  metric: string,
-  lockedPeriod: string | null = null,
-): number | null {
-  const fact = facts.facts.find(f => f.metric === metric);
-  if (!fact || fact.periods.length === 0) return null;
-  const annualForms = new Set(['10-K', '20-F', '40-F']);
-  if (lockedPeriod) {
-    const exact = fact.periods.find(p => annualForms.has(p.form) && p.period === lockedPeriod);
-    if (exact) return exact.value;
-  }
-  const annual = fact.periods.find(p => annualForms.has(p.form));
-  return annual?.value ?? fact.periods[0]?.value ?? null;
-}
-
-function buildFCFBridgeChart(
-  context: AnalysisContext,
-  ticker: string,
-  periodLock?: ChartPeriodLock,
+function buildFCFBridgeChartFromCompany(
+  company: CompanyReportModel,
 ): string | null {
-  const facts = context.facts[ticker];
-  if (!facts) return null;
+  const netIncome = company.metricsByKey.get('net_income')?.current ?? null;
+  const operatingCashFlow = company.metricsByKey.get('operating_cash_flow')?.current ?? null;
+  const capex = company.metricsByKey.get('capex')?.current ?? null;
+  if (netIncome === null || operatingCashFlow === null || capex === null) return null;
 
-  const netIncome = getFactValue(facts, 'net_income', periodLock?.current ?? null);
-  const ocf = getFactValue(facts, 'operating_cash_flow', periodLock?.current ?? null);
-  const capex = getFactValue(facts, 'capex', periodLock?.current ?? null);
-
-  if (netIncome === null || ocf === null) return null;
-
-  const adjustments = ocf - netIncome;
-  const capexAbs = Math.abs(capex || 0);
-  const fcf = ocf - capexAbs;
+  const adjustments = operatingCashFlow - netIncome;
+  const capexAbs = Math.abs(capex);
+  const fcf = company.metricsByKey.get('fcf')?.current ?? (operatingCashFlow - capexAbs);
+  if (fcf === null) return null;
 
   interface WaterfallItem {
     label: string;
@@ -237,13 +182,12 @@ function buildFCFBridgeChart(
   const items: WaterfallItem[] = [
     { label: 'Net Income', value: netIncome, type: 'base' },
     { label: 'Non-Cash Adj.', value: adjustments, type: 'delta' },
-    { label: 'CFO', value: ocf, type: 'subtotal' },
+    { label: 'CFO', value: operatingCashFlow, type: 'subtotal' },
     { label: 'CapEx', value: -capexAbs, type: 'delta' },
     { label: 'FCF', value: fcf, type: 'total' },
   ];
 
-  // Compute y-range from all positions
-  const allYValues = [0, netIncome, ocf, fcf];
+  const allYValues = [0, netIncome, operatingCashFlow, fcf];
   let running = 0;
   for (const item of items) {
     if (item.type === 'base' || item.type === 'subtotal' || item.type === 'total') {
@@ -260,45 +204,36 @@ function buildFCFBridgeChart(
   const yFloor = minY - yRange * 0.1;
   const yCeil = maxY + yRange * 0.15;
   const totalYRange = yCeil - yFloor;
-
   const pad = { top: 30, right: 30, bottom: 50, left: 80 };
   const plotW = CHART_WIDTH - pad.left - pad.right;
   const plotH = CHART_HEIGHT - pad.top - pad.bottom;
-
   const barCount = items.length;
   const barSpacing = plotW / barCount;
   const barWidth = barSpacing * 0.55;
-
   const valToY = (v: number) => pad.top + plotH - ((v - yFloor) / totalYRange * plotH);
   const zeroY = valToY(0);
 
   const parts: string[] = [];
   parts.push(svgOpen(CHART_WIDTH, CHART_HEIGHT));
   parts.push(svgBg(CHART_WIDTH, CHART_HEIGHT));
-  parts.push(svgTitle(`${escSvg(ticker)} — Cash Flow Conversion`, CHART_WIDTH));
+  parts.push(svgTitle(`${escSvg(company.ticker)} — Cash Flow Conversion`, CHART_WIDTH));
 
-  // Grid lines
   const gridStep = niceStep(totalYRange, 5);
   for (let v = Math.ceil(yFloor / gridStep) * gridStep; v <= yCeil; v += gridStep) {
     const y = valToY(v);
     parts.push(`<line x1="${pad.left}" y1="${y.toFixed(1)}" x2="${pad.left + plotW}" y2="${y.toFixed(1)}" stroke="${COLORS.gridLine}" stroke-width="0.5"/>`);
     parts.push(`<text x="${pad.left - 8}" y="${(y + 3).toFixed(1)}" text-anchor="end" font-family="Times New Roman, Times, serif" font-size="9" fill="${COLORS.gray}">${formatAxisValue(v)}</text>`);
   }
-
-  // Zero line
   if (yFloor <= 0 && yCeil >= 0) {
     parts.push(`<line x1="${pad.left}" y1="${zeroY.toFixed(1)}" x2="${pad.left + plotW}" y2="${zeroY.toFixed(1)}" stroke="${COLORS.gray}" stroke-width="1" stroke-dasharray="3,2"/>`);
   }
 
-  // Draw waterfall bars + connectors
   running = 0;
   let prevBarEndY = zeroY;
-
   for (let i = 0; i < barCount; i++) {
     const item = items[i]!;
     const cx = pad.left + i * barSpacing + barSpacing / 2;
     const x = cx - barWidth / 2;
-
     let barTop: number;
     let barBottom: number;
     let color: string;
@@ -318,23 +253,14 @@ function buildFCFBridgeChart(
     }
 
     const barH = barBottom - barTop;
-
-    // Connector line from previous bar
     if (i > 0) {
       const prevCx = pad.left + (i - 1) * barSpacing + barSpacing / 2;
       parts.push(`<line x1="${(prevCx + barWidth / 2).toFixed(1)}" y1="${prevBarEndY.toFixed(1)}" x2="${(cx - barWidth / 2).toFixed(1)}" y2="${prevBarEndY.toFixed(1)}" stroke="${COLORS.gray}" stroke-width="1" stroke-dasharray="2,2"/>`);
     }
-
-    // Bar
     parts.push(`<rect x="${x.toFixed(1)}" y="${barTop.toFixed(1)}" width="${barWidth.toFixed(1)}" height="${Math.max(1, barH).toFixed(1)}" fill="${color}" rx="2" opacity="0.85"/>`);
-
-    // Value label
     const labelY = item.value >= 0 ? barTop - 5 : barBottom + 12;
     parts.push(`<text x="${cx.toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="middle" font-family="Times New Roman, Times, serif" font-size="9" font-weight="600" fill="${color}">${formatAxisValue(item.value)}</text>`);
-
-    // X-axis label
     parts.push(`<text x="${cx.toFixed(1)}" y="${pad.top + plotH + 16}" text-anchor="middle" font-family="Times New Roman, Times, serif" font-size="9" fill="${COLORS.gray}">${escSvg(item.label)}</text>`);
-
     prevBarEndY = valToY(running);
   }
 
@@ -342,38 +268,37 @@ function buildFCFBridgeChart(
   return parts.join('\n');
 }
 
-
 // ── Utility functions ─────────────────────────────────────────
 
 function formatAxisValue(n: number): string {
   return formatCompactCurrency(n, { smallDecimals: 0, smartDecimals: true });
 }
 
-
-function selectAnnualChartValues(
-  values: TrendData['values'],
+function selectCompanyChartPeriods(
+  company: CompanyReportModel,
   maxPoints: number,
-  lockCurrent: string | null = null,
-): TrendData['values'] {
-  // Keep a single representative period per fiscal year to avoid mixed
-  // year-start/year-end artifacts in chart labels and growth math.
-  const byYear = new Map<number, TrendData['values'][number]>();
-  const sorted = [...values]
-    .filter(v => !lockCurrent || v.period.localeCompare(lockCurrent) <= 0)
-    .sort((a, b) => a.period.localeCompare(b.period));
-  for (const v of sorted) {
-    const date = new Date(v.period);
-    if (isNaN(date.getTime())) continue;
-    const year = date.getUTCFullYear();
-    const prev = byYear.get(year);
-    if (!prev || v.period > prev.period) {
-      byYear.set(year, v);
-    }
-  }
-  return Array.from(byYear.values())
-    .sort((a, b) => a.period.localeCompare(b.period))
+): string[] {
+  return Array.from(company.canonicalPeriodMap.keys())
+    .filter(period => !company.snapshotPeriod || period.localeCompare(company.snapshotPeriod) <= 0)
+    .sort((a, b) => a.localeCompare(b))
     .slice(-maxPoints);
 }
+
+function finiteOrNull(value: number | undefined): number | null {
+  if (value === undefined || !isFinite(value)) return null;
+  return value;
+}
+
+function safeDivideValue(
+  numerator: number | undefined,
+  denominator: number | undefined,
+): number | null {
+  const a = finiteOrNull(numerator);
+  const b = finiteOrNull(denominator);
+  if (a === null || b === null || b === 0) return null;
+  return a / b;
+}
+
 
 function formatPeriodShort(period: string): string {
   const date = new Date(period);

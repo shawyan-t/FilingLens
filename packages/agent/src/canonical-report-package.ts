@@ -3,7 +3,7 @@ import type { AnalysisInsights } from './analyzer.js';
 import { analyzeData } from './analyzer.js';
 import { buildReportModel, type ReportModel } from './report-model.js';
 import {
-  generateChartsWithLocks,
+  generateChartsForReportModel,
   type ChartPeriodLock,
   type ChartSet,
 } from './charts.js';
@@ -29,7 +29,7 @@ export function buildCanonicalReportPackage(
       prior: insights[ticker]?.priorPeriod ?? null,
     }]),
   ) as CanonicalPeriodLocks;
-  const charts = generateChartsWithLocks(context, periodLocks);
+  const charts = generateChartsForReportModel(reportModel);
   return {
     context,
     insights,

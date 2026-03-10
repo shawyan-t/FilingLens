@@ -19,6 +19,7 @@ import type {
   StructuredNarrativeSection,
 } from '@dolph/shared';
 import type { AnalysisInsights } from './analyzer.js';
+import type { ReportModel } from './report-model.js';
 import {
   SINGLE_REPORT_SECTIONS,
   COMPARISON_REPORT_SECTIONS,
@@ -65,13 +66,14 @@ export async function generateNarrative(
   llm: LLMProvider,
   tone?: string,
   options?: { temperature?: number; signal?: AbortSignal },
+  reportModel?: ReportModel,
 ): Promise<{ sections: ReportSection[]; llmCallCount: number }> {
   const sectionDefs = context.type === 'comparison'
     ? COMPARISON_REPORT_SECTIONS
     : SINGLE_REPORT_SECTIONS;
 
   const systemPrompt = TONE_PROFILES[tone || DEFAULT_TONE] || TONE_PROFILES[DEFAULT_TONE]!;
-  const dataBlock = buildDataBlock(context, insights);
+  const dataBlock = buildDataBlock(context, insights, reportModel);
   const ticker = context.tickers[0]!;
   const companyName = context.facts[ticker]?.company_name || ticker;
   const fxNote = context.facts[ticker]?.fx_note || '';
@@ -83,6 +85,7 @@ export async function generateNarrative(
     dataBlock,
     context,
     insights,
+    reportModel,
   };
 
   const sections: ReportSection[] = [];
@@ -137,6 +140,7 @@ export async function generateExecutiveSummaryOnly(
   tone?: string,
   options?: { temperature?: number; signal?: AbortSignal },
   policy?: ReportingPolicy,
+  reportModel?: ReportModel,
 ): Promise<{ section: ReportSection; llmCallCount: number; narrative: StructuredNarrativePayload }> {
   const sectionDefs = context.type === 'comparison'
     ? COMPARISON_REPORT_SECTIONS
@@ -154,9 +158,10 @@ export async function generateExecutiveSummaryOnly(
     ticker,
     companyName,
     fxNote,
-    dataBlock: buildDataBlock(context, insights),
+    dataBlock: buildDataBlock(context, insights, reportModel),
     context,
     insights,
+    reportModel,
   };
 
   const response = await llm.generate(def.buildPrompt(sectionData), systemPrompt, {

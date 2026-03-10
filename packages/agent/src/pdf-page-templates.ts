@@ -1,4 +1,4 @@
-import type { AnalysisContext, Report, ReportSection } from '@dolph/shared';
+import type { Report, ReportSection } from '@dolph/shared';
 import {
   formatCompactCurrency,
   formatCompactShares,
@@ -6,7 +6,6 @@ import {
 import {
   PDF_RENDER_RULES,
   clipBullets,
-  extractBullets,
   isUnavailableDisplay,
   normalizeDisplayCell,
   stripMarkdown,
@@ -16,7 +15,7 @@ import {
   type ReportModel,
 } from './report-model.js';
 import { requireCanonicalReportPackage, type CanonicalReportPackage } from './canonical-report-package.js';
-import type { AnalysisInsights } from './analyzer.js';
+import { buildCanonicalSourceRows } from './sources-builder.js';
 
 export interface PdfPageBuildResult {
   bodyHTML: string;
@@ -47,7 +46,7 @@ export function buildPdfPages(
   report: Report,
   canonicalPackage: CanonicalReportPackage,
 ): PdfPageBuildResult {
-  const { context, insights, reportModel, charts } = requireCanonicalReportPackage(
+  const { reportModel, charts } = requireCanonicalReportPackage(
     canonicalPackage,
     'buildPdfPages',
   );
@@ -56,13 +55,13 @@ export function buildPdfPages(
   const metricRows = primaryCompany ? metricRowsFromCompany(primaryCompany) : [];
   const pages: string[] = [];
 
-  pages.push(buildCoverPage(report, sections, metricRows, context, insights, reportModel));
-  pages.push(buildExecutivePage(report, sections, metricRows, context, reportModel));
+  pages.push(buildCoverPage(report, metricRows, reportModel));
+  pages.push(buildExecutivePage(report, sections, metricRows, reportModel));
   pages.push(...buildVisualPages(charts, reportModel));
   pages.push(...buildDashboardPages(reportModel));
   pages.push(buildCommentaryPage(report, metricRows, reportModel));
   pages.push(...buildAppendixPages(canonicalPackage));
-  pages.push(buildSourcesPage(report, canonicalPackage, sections));
+  pages.push(buildSourcesPage(report, canonicalPackage));
 
   return { bodyHTML: pages.filter(Boolean).join('\n') };
 }
@@ -75,12 +74,35 @@ function indexSections(sections: ReportSection[]): Record<string, ReportSection>
 
 function buildCoverPage(
   report: Report,
-  sections: Record<string, ReportSection>,
   metricRows: MetricRow[],
-  context?: AnalysisContext,
-  insights: Record<string, AnalysisInsights> = {},
   reportModel: ReportModel | null = null,
 ): string {
+  const companyTitle = report.type === 'single'
+    ? (reportModel?.companies[0]?.companyName || report.tickers[0] || 'N/A')
+    : report.tickers.join(' vs ');
+  const subtitle = report.type === 'comparison' ? 'Peer Comparison Brief' : 'Equity Research Note';
+  const kpiMarkup = report.type === 'comparison' && reportModel?.type === 'comparison'
+    ? buildComparisonCoverCards(reportModel)
+    : buildSingleCoverCards(metricRows);
+
+  return `
+    <section class="report-page page-cover">
+      <div class="cover-top">
+        <div class="cover-brand">Dolph Research</div>
+        <div class="cover-family">${escapeHTML(subtitle)}</div>
+        <div class="cover-date">${escapeHTML(formatDate(report.generated_at))}</div>
+      </div>
+      <div class="cover-hero">
+        <h1>${escapeHTML(companyTitle)}</h1>
+      </div>
+      <div class="cover-kpis">
+        ${kpiMarkup}
+      </div>
+    </section>
+  `;
+}
+
+function buildSingleCoverCards(metricRows: MetricRow[]): string {
   const kpiPriority = [
     'Revenue',
     'Net Income',
@@ -98,32 +120,32 @@ function buildCoverPage(
     if (cards.length >= PDF_RENDER_RULES.cover.maxKpis) break;
   }
 
-  const companyTitle = report.type === 'single'
-    ? (context?.facts?.[report.tickers[0] || '']?.company_name || report.tickers[0] || 'N/A')
-    : report.tickers.join(' vs ');
-  const subtitle = report.type === 'comparison' ? 'Peer Comparison Brief' : 'Equity Research Note';
+  return cards.map(kpi => `
+    <article class="kpi-card">
+      <div class="kpi-label">${escapeHTML(kpi.metric)}</div>
+      <div class="kpi-value">${escapeHTML(normalizeDisplayCell(kpi.current))}</div>
+      <div class="kpi-note">${escapeHTML(formatKpiNote(kpi))}</div>
+    </article>
+  `).join('\n');
+}
 
-  return `
-    <section class="report-page page-cover">
-      <div class="cover-top">
-        <div class="cover-brand">Dolph Research</div>
-        <div class="cover-family">${escapeHTML(subtitle)}</div>
-        <div class="cover-date">${escapeHTML(formatDate(report.generated_at))}</div>
-      </div>
-      <div class="cover-hero">
-        <h1>${escapeHTML(companyTitle)}</h1>
-      </div>
-      <div class="cover-kpis">
-        ${cards.map(kpi => `
-          <article class="kpi-card">
-            <div class="kpi-label">${escapeHTML(kpi.metric)}</div>
-            <div class="kpi-value">${escapeHTML(normalizeDisplayCell(kpi.current))}</div>
-            <div class="kpi-note">${escapeHTML(formatKpiNote(kpi))}</div>
-          </article>
-        `).join('\n')}
-      </div>
-    </section>
-  `;
+function buildComparisonCoverCards(reportModel: ReportModel): string {
+  const metrics = ['Revenue', 'Net Income', 'Free Cash Flow', 'Debt-to-Equity'];
+  return metrics.map(label => {
+    const lines = reportModel.companies.map(company => {
+      const value = company.metricsByLabel.get(label)?.currentDisplay
+        || company.allMetricsByLabel.get(label)?.currentDisplay
+        || 'Not reported';
+      return `${company.ticker}: ${normalizeDisplayCell(value)}`;
+    });
+    return `
+      <article class="kpi-card">
+        <div class="kpi-label">${escapeHTML(label)}</div>
+        <div class="kpi-value">${escapeHTML(lines[0] || '')}</div>
+        <div class="kpi-note">${escapeHTML(lines.slice(1).join(' | '))}</div>
+      </article>
+    `;
+  }).join('\n');
 }
 
 function formatKpiNote(kpi: MetricRow): string {
@@ -148,7 +170,6 @@ function buildExecutivePage(
   report: Report,
   sections: Record<string, ReportSection>,
   metricRows: MetricRow[],
-  context?: AnalysisContext,
   reportModel: ReportModel | null = null,
 ): string {
   const byMetric = new Map(metricRows.map(r => [r.metric, r]));
@@ -198,7 +219,10 @@ function buildComparisonExecutiveScorecard(reportModel: ReportModel | null): str
   ];
   const rows = metrics
     .map(label => {
-      const cells = reportModel.companies.map(company => company.metricsByLabel.get(label)?.currentDisplay || 'N/A');
+      const cells = reportModel.companies.map(company =>
+        company.metricsByLabel.get(label)?.currentDisplay
+        || company.allMetricsByLabel.get(label)?.currentDisplay
+        || 'Not reported');
       if (cells.every(cell => isUnavailableDisplay(cell))) return null;
       return [label, ...cells];
     })
@@ -397,7 +421,10 @@ function dashboardGroupsFromReportModel(reportModel: ReportModel): DashboardGrou
     headers: ['Metric', ...tickers],
     rows: group.rowLabels.map(label => [
       label,
-      ...reportModel.companies.map(company => company.metricsByLabel.get(label)?.currentDisplay || 'Unavailable'),
+      ...reportModel.companies.map(company =>
+        company.metricsByLabel.get(label)?.currentDisplay
+        || company.allMetricsByLabel.get(label)?.currentDisplay
+        || 'Not reported'),
     ]),
   }));
 }
@@ -448,21 +475,25 @@ function buildCommentaryPage(
   metricRows: MetricRow[],
   reportModel: ReportModel | null = null,
 ): string {
-  const standout = commentaryBulletsFromReport(
+  const standout = commentaryParagraphsFromReport(
     report,
     report.type === 'comparison' ? 'relative_strengths' : 'trend_analysis',
-    3,
+    2,
   );
-  const watch = commentaryBulletsFromReport(report, 'risk_factors', 2, true);
-  const interpretation = commentaryBulletsFromReport(report, 'analyst_notes', 3);
+  const watch = commentaryParagraphsFromReport(report, 'risk_factors', 2, true);
+  const interpretation = commentaryParagraphsFromReport(report, 'analyst_notes', 2);
+
+  const blocks = [
+    buildCommentaryBlock('What stands out', standout),
+    buildCommentaryBlock('Watch items', watch),
+    buildCommentaryBlock('Analyst interpretation', interpretation),
+  ].filter(Boolean).join('\n');
 
   return `
     <section class="report-page page-commentary">
       <div class="page-header"><h2>Commentary</h2></div>
       ${PERIOD_BANNER_SLOT}
-      ${buildCommentaryBlock('What stands out', standout)}
-      ${buildCommentaryBlock('Watch items', watch)}
-      ${buildCommentaryBlock('Analyst interpretation', interpretation)}
+      ${blocks}
       ${buildCommentaryChecklist(
         report,
         reportModel?.companies[0] ? metricRowsFromCompany(reportModel.companies[0]) : metricRows,
@@ -472,32 +503,34 @@ function buildCommentaryPage(
   `;
 }
 
-function commentaryBulletsFromReport(
+function commentaryParagraphsFromReport(
   report: Report,
   sectionId: string,
-  maxBullets: number,
+  maxParagraphs: number,
   strictWatch = false,
 ): string[] {
   const structured = report.narrative?.sections.find(section => section.id === sectionId);
-  const candidateParagraphs = structured?.paragraphs?.map(paragraph => paragraph.text) || [];
-  const bullets = sanitizeBullets(candidateParagraphs.map(normalizeNarrativeBullet))
+  const candidateParagraphs = structured?.paragraphs?.map(paragraph => paragraph.text)
+    || sectionTextParagraphs(report.sections.find(section => section.id === sectionId)?.content || '');
+  const paragraphs = sanitizeParagraphs(candidateParagraphs.map(normalizeNarrativeParagraph))
     .filter(s => s.length >= 24)
     .filter(s => !/anomaly in|significant spike|σ|z-score/i.test(s));
   const filtered = strictWatch
-    ? bullets.filter(s => /risk|watch|leverage|liquidity|volatility|pressure|constraint|declin|debt|cash burn|coverage/i.test(s))
-    : bullets;
-  const selected = (filtered.length > 0 ? filtered : bullets).slice(0, maxBullets);
+    ? paragraphs.filter(s => /risk|watch|leverage|liquidity|volatility|pressure|constraint|declin|debt|cash burn|coverage/i.test(s))
+    : paragraphs;
+  const selected = (filtered.length > 0 ? filtered : paragraphs).slice(0, maxParagraphs);
   return selected;
 }
 
-function normalizeNarrativeBullet(text: string): string {
+function normalizeNarrativeParagraph(text: string): string {
   return text
     .replace(/^[-*]\s+/, '')
     .replace(/^\*\*([^*]+)\*\*:\s*/, '$1: ')
+    .replace(/^#{1,4}\s+/, '')
     .trim();
 }
 
-function sanitizeBullets(items: string[]): string[] {
+function sanitizeParagraphs(items: string[]): string[] {
   return items
     .map(sanitizeSentence)
     .filter(Boolean)
@@ -521,14 +554,19 @@ function sanitizeSentence(input: string): string {
   return s;
 }
 
-function buildCommentaryBlock(title: string, bullets: string[]): string {
-  const safe = bullets.length > 0
-    ? bullets
-    : ['No material narrative signal was available beyond the verified metrics in this run.'];
+function sectionTextParagraphs(content: string): string[] {
+  return content
+    .split(/\n{2,}/)
+    .map(paragraph => paragraph.trim())
+    .filter(Boolean);
+}
+
+function buildCommentaryBlock(title: string, paragraphs: string[]): string {
+  if (paragraphs.length === 0) return '';
   return `
     <section class="module commentary-block">
       <h3>${escapeHTML(title)}</h3>
-      <ul>${safe.map(item => `<li>${escapeHTML(item)}</li>`).join('')}</ul>
+      ${paragraphs.map(item => `<p>${escapeHTML(item)}</p>`).join('')}
     </section>
   `;
 }
@@ -544,7 +582,7 @@ function buildCommentaryChecklist(
     if (basis?.note) checklist.push(basis.note);
     const peerPeriods = basis
       ? Object.entries(basis.peer_periods)
-        .map(([ticker, binding]) => `${ticker}: ${binding.current_period || 'Unavailable'} current / ${binding.prior_period || 'Unavailable'} prior`)
+        .map(([ticker, binding]) => `${ticker}: ${binding.current_period || 'N/A'} current / ${binding.prior_period || 'N/A'} prior`)
       : [];
     if (peerPeriods.length > 0) checklist.push(`Locked peer periods: ${peerPeriods.join('; ')}.`);
     const unavailable = (reportModel?.companies || [])
@@ -638,33 +676,9 @@ function formatByUnit(n: number, unit?: string): string {
 function buildSourcesPage(
   report: Report,
   canonicalPackage: CanonicalReportPackage,
-  sections: Record<string, ReportSection>,
 ): string {
-  const { context, reportModel: model } = requireCanonicalReportPackage(canonicalPackage, 'buildSourcesPage');
-  const sourceRows: Array<{
-    ticker: string;
-    cik: string;
-    accession: string;
-    form: string;
-    filed: string;
-    url: string;
-  }> = [];
-  for (const company of model.companies) {
-    const cik = context.facts[company.ticker]?.cik || 'N/A';
-    for (const filing of company.filingReferences) {
-      if (!filing.url) continue;
-      sourceRows.push({
-        ticker: company.ticker,
-        cik,
-        accession: filing.accessionNumber || 'N/A',
-        form: filing.form || 'SEC filing',
-        filed: filing.filed || 'N/A',
-        url: filing.url,
-      });
-    }
-  }
-
-  const fallback = extractBullets(sections['data_sources']?.content || '');
+  requireCanonicalReportPackage(canonicalPackage, 'buildSourcesPage');
+  const sourceRows = buildCanonicalSourceRows(canonicalPackage);
   const sourceTable = sourceRows.length > 0
     ? `
       <table class="sources-table">
@@ -685,9 +699,9 @@ function buildSourcesPage(
         </tbody>
       </table>
     `
-    : `<ul>${fallback.slice(0, 8).map(line => `<li>${escapeHTML(line)}</li>`).join('\n')}</ul>`;
+    : '<p>Extraction failure: no filing references were captured in the sealed canonical package.</p>';
 
-  const runDate = escapeHTML(new Date(report.generated_at).toISOString().slice(0, 10));
+  const runDate = escapeHTML(report.generated_at.slice(0, 10));
   const comparisonMethodNote = report.type === 'comparison'
     ? (report.comparison_basis?.note
       || 'Comparisons reflect each issuer’s latest annual filing period unless otherwise noted.')

@@ -14,6 +14,7 @@
 import type { AnalysisContext } from '@dolph/shared';
 import type { AnalysisInsights } from '../analyzer.js';
 import { formatCompactCurrency, formatMetricChange } from '@dolph/shared';
+import type { ReportModel } from '../report-model.js';
 
 // ── Section Definitions ─────────────────────────────────────────
 
@@ -33,6 +34,7 @@ export interface SectionData {
   dataBlock: string;
   context: AnalysisContext;
   insights: Record<string, AnalysisInsights>;
+  reportModel?: ReportModel;
   /** Previously generated section content for narrative coherence (LLM mode only) */
   priorSections?: Array<{ id: string; title: string; content: string }>;
 }
@@ -68,7 +70,7 @@ INSTRUCTIONS:
 - Paragraph 2: Dig into profitability and margins. What do operating margin and net margin tell us about the business model? Connect to any notable cost or revenue drivers visible in the data.
 - Paragraph 3: Assess the balance sheet and liquidity posture. Is the company conservatively financed or levered? What do the current ratio and debt-to-equity signal about financial flexibility?
 - Paragraph 4: Cash flow story — operating cash flow, free cash flow, and capex. What is the reinvestment profile? Is the business self-funding?
-- Paragraph 5 (optional): If risk factors or filing excerpts are available, connect the numbers to real-world context — regulatory risk, competitive dynamics, macroeconomic exposure, recent acquisitions, or industry shifts. Synthesize the overall picture.
+- Paragraph 5 (optional): If risk factors or filing excerpts are available, connect the numbers to the business and financial context disclosed in the filing — demand profile, margin structure, capital allocation, liquidity, or stated risk exposure.
 - Every paragraph must reference specific dollar amounts and percentages from the AUTHORITATIVE METRICS in the DATA
 - Write in a natural, professional tone — like a well-crafted research note, not a template
 - Connect the financial data points into a coherent narrative arc — do not merely list facts
@@ -155,7 +157,7 @@ ${data.dataBlock}
 INSTRUCTIONS:
 - Write 3-4 paragraphs of synthesis that tie together the entire analysis
 - Paragraph 1: What story do the numbers tell? What is the company's financial narrative arc — growth, maturity, turnaround, or decline?
-- Paragraph 2: Connect the financial data to broader context. What industry dynamics, competitive pressures, or macroeconomic factors might explain the patterns in the data?
+- Paragraph 2: Connect the financial data to the business context disclosed in the filing. What do the reported risk factors, margin structure, or capital allocation choices suggest about the operating setup?
 - Paragraph 3: What questions should an analyst investigate further? What gaps in the data deserve deeper diligence?
 - Paragraph 4 (optional): Forward-looking considerations — what would confirmation or deterioration in key metrics signal?
 - Every paragraph must reference specific numbers from the AUTHORITATIVE METRICS in the DATA
@@ -277,7 +279,7 @@ ${data.dataBlock}
 INSTRUCTIONS:
 - Write 3-4 paragraphs of synthesis that tie together the entire comparative analysis
 - What does the data tell us about their relative competitive positions?
-- What industry or macro context might explain the differences?
+- What filing-disclosed business or risk context helps explain the differences?
 - What should an analyst investigate further in each company?
 - Reference specific numbers from the AUTHORITATIVE METRICS throughout
 - Do NOT use headings — write only flowing paragraphs
@@ -309,19 +311,19 @@ Output the paragraphs only.`;
 export function buildDataBlock(
   context: AnalysisContext,
   insights: Record<string, AnalysisInsights>,
+  reportModel?: ReportModel,
 ): string {
   const parts: string[] = [];
 
   for (const ticker of context.tickers) {
     const tickerInsights = insights[ticker];
-    const facts = context.facts[ticker];
-    const trends = context.trends[ticker] || [];
+    const company = reportModel?.companiesByTicker.get(ticker);
     const filingContent = context.filing_content[ticker];
     const snapshotPeriod = tickerInsights?.snapshotPeriod;
 
-    parts.push(`# ${ticker} — ${facts?.company_name || ticker}`);
-    if (facts?.fx_note) {
-      parts.push(`Note: All values converted to USD (${facts.fx_note})`);
+    parts.push(`# ${ticker} — ${company?.companyName || context.facts[ticker]?.company_name || ticker}`);
+    if (company?.fxNote || context.facts[ticker]?.fx_note) {
+      parts.push(`Note: All values converted to USD (${company?.fxNote || context.facts[ticker]?.fx_note})`);
     }
     if (snapshotPeriod) {
       parts.push(`Snapshot period: ${snapshotPeriod}`);
@@ -329,53 +331,26 @@ export function buildDataBlock(
     parts.push('');
 
     // AUTHORITATIVE canonical ledger — the single source of truth for citations
-    if (tickerInsights?.canonicalFacts && Object.keys(tickerInsights.canonicalFacts).length > 0) {
+    if (company?.metrics && company.metrics.length > 0) {
       parts.push('## AUTHORITATIVE METRICS — Cite ONLY these figures');
       parts.push('These are the period-locked, reconciled values from SEC XBRL filings.');
-      for (const [, m] of Object.entries(tickerInsights.canonicalFacts)) {
+      for (const m of company.metrics) {
         if (m.current === null) continue;
-        const fmtCurrent = formatValue(m.current, m.unit);
+        const fmtCurrent = m.currentDisplay;
         const changeDisplay = formatMetricChange(m.change, m.current, m.prior);
         const changeStr = changeDisplay !== 'N/A' ? ` (YoY: ${changeDisplay})` : '';
-        const priorStr = m.prior !== null ? ` | Prior: ${formatValue(m.prior, m.unit)}` : '';
-        parts.push(`- ${m.displayName}: ${fmtCurrent}${changeStr}${priorStr}`);
+        const priorStr = m.prior !== null ? ` | Prior: ${m.priorDisplay}` : '';
+        parts.push(`- ${m.label}: ${fmtCurrent}${changeStr}${priorStr}`);
       }
       parts.push('');
     }
 
-    // Key metrics (legacy block — kept for backwards compatibility but subordinate)
-    if (tickerInsights?.keyMetrics && Object.keys(tickerInsights.keyMetrics).length > 0) {
-      parts.push('## Key Metrics');
-      for (const [name, data] of Object.entries(tickerInsights.keyMetrics)) {
-        const changeDisplay = formatMetricChange(data.change, data.current, data.prior);
-        const changeStr = changeDisplay !== 'N/A'
-          ? ` (YoY: ${changeDisplay})`
-          : '';
-        parts.push(`- ${name}: ${formatValue(data.current, data.unit)}${changeStr}`);
-      }
-      parts.push('');
-    }
-
-    // Supplementary ratios — filtered to snapshot period only
-    const ratios = (context.ratios[ticker] || [])
-      .filter(r => !snapshotPeriod || r.period === snapshotPeriod);
-    if (ratios.length > 0) {
-      parts.push('## Supplementary Ratios (do not cite if an authoritative metric exists above)');
-      for (const r of ratios) {
-        parts.push(`- ${r.display_name}: ${r.value.toFixed(4)} (${r.formula}) [period: ${r.period}]`);
-      }
-      parts.push('');
-    }
-
-    // Trends
-    if (trends.length > 0) {
-      parts.push('## Trends');
-      for (const t of trends) {
-        const cagrStr = t.cagr !== null ? `CAGR: ${(t.cagr * 100).toFixed(1)}%` : 'CAGR: N/A';
-        const values = t.values.slice(-5).map(v =>
-          `${v.period}: ${formatLargeNumber(v.value)}`,
-        ).join(', ');
-        parts.push(`- ${t.metric}: ${cagrStr} | Recent: ${values}`);
+    if (tickerInsights?.topTrends && tickerInsights.topTrends.length > 0) {
+      parts.push('## Canonical Trends');
+      for (const t of tickerInsights.topTrends) {
+        const cagrStr = t.cagr !== null ? `CAGR: ${(t.cagr * 100).toFixed(1)}%` : 'CAGR: not meaningful';
+        const latest = t.latestValue !== null ? formatLargeNumber(t.latestValue) : 'Not reported';
+        parts.push(`- ${t.displayName}: latest ${latest}; ${cagrStr}. ${t.description}`);
       }
       parts.push('');
     }
@@ -411,7 +386,7 @@ export function buildDataBlock(
     }
 
     // Comparison data derived from the same locked canonical metrics as the PDF.
-    if (context.type === 'comparison') {
+    if (context.type === 'comparison' && reportModel) {
       const comparisonMetrics = [
         'Revenue',
         'Net Income',
@@ -426,11 +401,11 @@ export function buildDataBlock(
       ];
       parts.push('## Comparison Matrix');
       for (const metricName of comparisonMetrics) {
-        const values = context.tickers
-          .map(t => {
-            const metric = insights[t]?.keyMetrics?.[metricName];
-            if (!metric || metric.current === null || metric.current === undefined) return `${t}: N/A`;
-            return `${t}: ${formatValue(metric.current, metric.unit)}`;
+        const values = reportModel.companies
+          .map(companyRow => {
+            const metric = companyRow.metricsByLabel.get(metricName) || companyRow.allMetricsByLabel.get(metricName);
+            if (!metric || metric.current === null || metric.current === undefined) return `${companyRow.ticker}: Not reported`;
+            return `${companyRow.ticker}: ${metric.currentDisplay}`;
           })
           .join(', ');
         parts.push(`- ${metricName}: ${values}`);
@@ -440,16 +415,6 @@ export function buildDataBlock(
   }
 
   return parts.join('\n');
-}
-
-// ── Formatting Utilities ────────────────────────────────────────
-
-function formatValue(value: number, unit: string): string {
-  if (unit === '%') return `${(value * 100).toFixed(1)}%`;
-  if (unit === 'x') return `${value.toFixed(2)}x`;
-  if (unit === 'USD') return formatLargeNumber(value);
-  if (unit === 'USD/share' || unit === 'USD/shares') return `$${value.toFixed(2)}`;
-  return `${value}`;
 }
 
 function formatLargeNumber(n: number): string {

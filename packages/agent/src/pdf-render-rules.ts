@@ -103,12 +103,13 @@ export function normalizeDisplayCell(value: string): string {
 export function isUnavailableDisplay(value: string): boolean {
   const normalized = normalizeDisplayCell(value).toLowerCase();
   return normalized === 'n/a'
-    || normalized === 'unavailable'
+    || normalized === 'unavailable'       // legacy — kept for backward compat
     || normalized === 'policy-excluded'
     || normalized === 'basis conflict'
     || normalized === 'qa-excluded'
     || normalized === 'statement gap'
-    || normalized === 'derived unavailable'
+    || normalized === 'extraction failure'
+    || normalized === 'derived unavailable' // legacy
     || normalized === 'not reported';
 }
 

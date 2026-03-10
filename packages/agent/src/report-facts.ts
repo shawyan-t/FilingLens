@@ -1,4 +1,4 @@
-import type { AnalysisContext, FinancialStatement, ProvenanceReceipt } from '@dolph/shared';
+import { getMappingByName, type AnalysisContext, type FinancialStatement, type ProvenanceReceipt } from '@dolph/shared';
 
 const ANNUAL_FORMS = new Set(['10-K', '20-F', '40-F']);
 
@@ -52,6 +52,8 @@ export interface CanonicalFactSource {
   provenance?: ProvenanceReceipt;
   detail?: string;
   reportedValue?: number;
+  reportedLabel?: string;
+  reportedUnit?: string;
 }
 
 export interface CanonicalAnnualSeries {
@@ -140,6 +142,8 @@ export function applyDerivedPeriodValues(
           ticker,
           metric: 'total_debt',
           period,
+          reportedLabel: 'Total Debt',
+          reportedUnit: 'USD',
           reportedValue: totalDebt ?? undefined,
           detail: totalDebt === null
             ? 'Derived as long_term_debt + short_term_debt because both debt components were reported.'
@@ -160,6 +164,8 @@ export function applyDerivedPeriodValues(
         ticker,
         metric: 'total_debt',
         period,
+        reportedLabel: 'Total Debt',
+        reportedUnit: 'USD',
         detail: `Derived from ${parts.join(' + ')} only; the other debt component was not reported.`,
       };
     }
@@ -175,6 +181,8 @@ export function applyDerivedPeriodValues(
         ticker,
         metric: 'free_cash_flow',
         period,
+        reportedLabel: 'Free Cash Flow',
+        reportedUnit: 'USD',
         detail: 'Derived as operating_cash_flow - abs(capex).',
       };
     }
@@ -191,6 +199,8 @@ export function applyDerivedPeriodValues(
         ticker,
         metric: 'gross_profit',
         period,
+        reportedLabel: 'Gross Profit',
+        reportedUnit: 'USD',
         detail: 'Derived as revenue - cost_of_revenue.',
       };
     }
@@ -207,7 +217,137 @@ export function applyDerivedPeriodValues(
         ticker,
         metric: 'working_capital',
         period,
+        reportedLabel: 'Working Capital',
+        reportedUnit: 'USD',
         detail: 'Derived as current_assets - current_liabilities.',
+      };
+    }
+  }
+
+  // Pretax income sign correction: fix sign inversion from loss-variant XBRL tags
+  const netIncome = finite(values['net_income']);
+  const incomeTaxExpense = finite(values['income_tax_expense']);
+  const reportedPretax = finite(values['pretax_income']);
+  if (netIncome !== null && incomeTaxExpense !== null && reportedPretax !== null) {
+    const expectedPretax = netIncome + incomeTaxExpense;
+    if (
+      Math.sign(reportedPretax) !== Math.sign(expectedPretax)
+      && expectedPretax !== 0
+      && Math.abs(Math.abs(reportedPretax) - Math.abs(expectedPretax)) <= Math.max(Math.abs(expectedPretax) * 0.05, 1_000_000)
+    ) {
+      values['pretax_income'] = expectedPretax;
+      if (sources) {
+        sources['pretax_income'] = {
+          kind: 'derived',
+          ticker,
+          metric: 'pretax_income',
+          period,
+          reportedLabel: 'Pretax Income',
+          reportedUnit: 'USD',
+          reportedValue: reportedPretax,
+          detail: `Sign-corrected pretax_income from ${reportedPretax} to ${expectedPretax} (net_income + income_tax_expense).`,
+        };
+      }
+    }
+  }
+
+  // Derive eps_diluted when not directly reported
+  if (netIncome !== null && values['eps_diluted'] === undefined) {
+    const shareBasis = finite(values['weighted_avg_shares_diluted']) ?? finite(values['shares_outstanding']);
+    const usedWeighted = finite(values['weighted_avg_shares_diluted']) !== null;
+    if (shareBasis !== null && shareBasis !== 0) {
+      values['eps_diluted'] = netIncome / shareBasis;
+      if (sources) {
+        sources['eps_diluted'] = {
+          kind: 'derived',
+          ticker,
+          metric: 'eps_diluted',
+          period,
+          reportedLabel: 'EPS (Diluted)',
+          reportedUnit: 'USD/shares',
+          detail: usedWeighted
+            ? 'Derived as net_income / weighted_avg_shares_diluted.'
+            : 'Derived as net_income / shares_outstanding (weighted average shares not reported).',
+        };
+      }
+    }
+  }
+
+  // Derive eps_basic when not directly reported
+  if (netIncome !== null && values['eps_basic'] === undefined) {
+    const basicShares = finite(values['weighted_avg_shares_basic']) ?? finite(values['shares_outstanding']);
+    if (basicShares !== null && basicShares !== 0) {
+      values['eps_basic'] = netIncome / basicShares;
+      if (sources) {
+        sources['eps_basic'] = {
+          kind: 'derived',
+          ticker,
+          metric: 'eps_basic',
+          period,
+          reportedLabel: 'EPS (Basic)',
+          reportedUnit: 'USD/shares',
+          detail: finite(values['weighted_avg_shares_basic']) !== null
+            ? 'Derived as net_income / weighted_avg_shares_basic.'
+            : 'Derived as net_income / shares_outstanding (weighted average basic shares not reported).',
+        };
+      }
+    }
+  }
+
+  // Derive pretax_income when not directly reported but net_income + tax exist
+  if (netIncome !== null && incomeTaxExpense !== null && values['pretax_income'] === undefined) {
+    values['pretax_income'] = netIncome + incomeTaxExpense;
+    if (sources) {
+      sources['pretax_income'] = {
+        kind: 'derived',
+        ticker,
+        metric: 'pretax_income',
+        period,
+        reportedLabel: 'Pretax Income',
+        reportedUnit: 'USD',
+        detail: 'Derived as net_income + income_tax_expense.',
+      };
+    }
+  }
+
+  // Derive cash_and_equivalents_and_restricted_cash from components
+  const cashEquiv = finite(values['cash_and_equivalents']);
+  const restrictedCash = finite(values['restricted_cash']);
+  if (
+    cashEquiv !== null
+    && restrictedCash !== null
+    && values['cash_and_equivalents_and_restricted_cash'] === undefined
+  ) {
+    values['cash_and_equivalents_and_restricted_cash'] = cashEquiv + restrictedCash;
+    if (sources) {
+      sources['cash_and_equivalents_and_restricted_cash'] = {
+        kind: 'derived',
+        ticker,
+        metric: 'cash_and_equivalents_and_restricted_cash',
+        period,
+        reportedLabel: 'Cash, Cash Equivalents & Restricted Cash',
+        reportedUnit: 'USD',
+        detail: 'Derived as cash_and_equivalents + restricted_cash.',
+      };
+    }
+  }
+
+  const shortTermInvestments = finite(values['short_term_investments']);
+  if (
+    cashEquiv !== null
+    && shortTermInvestments !== null
+    && values['cash_and_equivalents_and_short_term_investments'] === undefined
+  ) {
+    values['cash_and_equivalents_and_short_term_investments'] = cashEquiv + shortTermInvestments;
+    if (sources) {
+      sources['cash_and_equivalents_and_short_term_investments'] = {
+        kind: 'derived',
+        ticker,
+        metric: 'cash_and_equivalents_and_short_term_investments',
+        period,
+        reportedLabel: 'Cash, Cash Equivalents & Short-Term Investments',
+        reportedUnit: 'USD',
+        detail: 'Derived as cash_and_equivalents + short_term_investments.',
       };
     }
   }
@@ -408,6 +548,9 @@ export function buildCanonicalAnnualSeries(
         form: period.form,
         filed: period.filed,
         provenance: period.provenance,
+        reportedValue: period.value,
+        reportedLabel: fact.label,
+        reportedUnit: period.unit,
       };
       if (!shouldReplaceExistingSource(sourceBucket[fact.metric], period.form, period.filed)) continue;
       bucket[fact.metric] = normalizeMetricValue(fact.metric, period.value);
@@ -433,6 +576,9 @@ export function buildCanonicalAnnualSeries(
           period: period.period,
           filed: period.filed,
           statementType: statement.statement_type,
+          reportedValue: rawValue,
+          reportedLabel: getMappingByName(metric)?.displayName || metric,
+          reportedUnit: getMappingByName(metric)?.unit || 'USD',
           detail: 'Filled from deterministic statement extraction.',
         };
       }

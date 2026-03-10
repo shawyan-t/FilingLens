@@ -12,7 +12,6 @@ export { runPipeline } from './pipeline.js';
 export { createLLMProvider, getLLMConfig } from './llm/provider.js';
 export { generatePDF } from './exporter.js';
 export { exportCSV } from './exporter-csv.js';
-export { generateCharts } from './charts.js';
 export { buildFinancialStatementsSection } from './statements-builder.js';
 export { buildKeyMetricsSection } from './metrics-builder.js';
 export type { PipelineConfig, PipelineCallbacks, PipelineResult } from './types.js';

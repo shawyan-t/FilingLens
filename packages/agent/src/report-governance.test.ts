@@ -913,7 +913,7 @@ describe('report governance hardening', () => {
     assert.ok(bbbLiquidity.rows.some(row => row.label === 'Current Assets'));
     assert.equal(
       reportModel.companiesByTicker.get('BBB')!.metricsByLabel.get('Current Assets')?.currentDisplay,
-      'Unavailable',
+      'Not reported',
     );
   });
 
@@ -933,5 +933,143 @@ describe('report governance hardening', () => {
     assert.ok(notes.some(note => /central statement mapping catalog/i.test(note)));
     assert.ok(notes.some(note => /locked annual appendix basis/i.test(note)));
     assert.equal(notes.some(note => /Derived or reconciled appendix rows include/i.test(note)), false);
+  });
+
+  it('derives EPS when eps_diluted is not reported but net_income and shares exist', () => {
+    const context = makeContext('EPS');
+    // Remove eps_diluted from facts and statements
+    for (const fact of context.facts['EPS']!.facts) {
+      if (fact.metric === 'eps_diluted') {
+        for (const period of fact.periods) period.value = undefined as any;
+      }
+    }
+    context.facts['EPS']!.facts = context.facts['EPS']!.facts.filter(f => f.metric !== 'eps_diluted');
+    for (const statement of context.statements['EPS'] || []) {
+      for (const period of statement.periods) {
+        delete period.data['eps_diluted'];
+      }
+    }
+    // Add weighted_avg_shares_diluted
+    context.facts['EPS']!.facts.push({
+      metric: 'weighted_avg_shares_diluted',
+      periods: [
+        { period: '2025-12-31', value: 170_200_000, unit: 'shares', form: '10-K', fiscal_year: 2025, fiscal_period: 'FY', filed: '2026-02-01' },
+        { period: '2024-12-31', value: 165_000_000, unit: 'shares', form: '10-K', fiscal_year: 2024, fiscal_period: 'FY', filed: '2026-02-01' },
+      ],
+    });
+    for (const statement of context.statements['EPS'] || []) {
+      if (statement.statement_type === 'income') {
+        statement.periods[0]!.data['weighted_avg_shares_diluted'] = 170_200_000;
+        statement.periods[1]!.data['weighted_avg_shares_diluted'] = 165_000_000;
+      }
+    }
+
+    context.policy = resolveReportingPolicy({
+      tickers: ['EPS'],
+      type: 'single',
+      maxRetries: 1,
+      maxValidationLoops: 0,
+    });
+
+    const insights = analyzeData(context, context.policy);
+    const eps = insights['EPS']?.keyMetrics['Earnings Per Share (Diluted)'];
+    assert.ok(eps, 'EPS should be derived when net_income and weighted_avg_shares_diluted exist');
+    // net_income = 716_600_000, weighted_avg_shares_diluted = 170_200_000 → ~4.21
+    assert.ok(Math.abs(eps.current - (716_600_000 / 170_200_000)) < 0.01, `EPS value should match derivation, got ${eps.current}`);
+  });
+
+  it('corrects pretax_income sign when it disagrees with net_income + income_tax_expense', () => {
+    const context = makeContext('SGN');
+    // Add income_tax_expense and a sign-inverted pretax_income
+    const netIncome = 716_600_000;
+    const taxExpense = 200_000_000;
+    const wrongPretax = -(netIncome + taxExpense); // negative when it should be positive
+
+    for (const statement of context.statements['SGN'] || []) {
+      if (statement.statement_type === 'income') {
+        statement.periods[0]!.data['income_tax_expense'] = taxExpense;
+        statement.periods[0]!.data['pretax_income'] = wrongPretax;
+      }
+    }
+    context.facts['SGN']!.facts.push(
+      {
+        metric: 'income_tax_expense',
+        periods: [{ period: '2025-12-31', value: taxExpense, unit: 'USD', form: '10-K', fiscal_year: 2025, fiscal_period: 'FY', filed: '2026-02-01' }],
+      },
+      {
+        metric: 'pretax_income',
+        periods: [{ period: '2025-12-31', value: wrongPretax, unit: 'USD', form: '10-K', fiscal_year: 2025, fiscal_period: 'FY', filed: '2026-02-01' }],
+      },
+    );
+
+    const periodMap = buildCanonicalAnnualPeriodMap(context, 'SGN');
+    const corrected = periodMap.get('2025-12-31')?.['pretax_income'];
+    assert.ok(corrected !== undefined, 'pretax_income should exist after sign correction');
+    assert.ok(corrected! > 0, `pretax_income should be positive after correction, got ${corrected}`);
+    assert.ok(
+      Math.abs(corrected! - (netIncome + taxExpense)) < 1_000_000,
+      `pretax_income should equal net_income + tax, got ${corrected}`,
+    );
+  });
+
+  it('does not drift suppressed cash-family duplicates to N/A in comparison groups', () => {
+    const first = makeContext('CMP');
+    const second = makeContext('CMP2');
+
+    // Both peers have identical cash_and_equivalents and cash_and_equivalents_and_restricted_cash
+    for (const ticker of ['CMP', 'CMP2'] as const) {
+      for (const statement of (ticker === 'CMP' ? first : second).statements[ticker] || []) {
+        if (statement.statement_type === 'balance_sheet') {
+          for (const period of statement.periods) {
+            period.data['cash_and_equivalents'] = 600_000_000;
+            period.data['cash_and_equivalents_and_restricted_cash'] = 600_000_000;
+          }
+        }
+      }
+      const facts = (ticker === 'CMP' ? first : second).facts[ticker]!;
+      facts.facts.push({
+        metric: 'cash_and_equivalents_and_restricted_cash',
+        periods: [
+          { period: '2025-12-31', value: 600_000_000, unit: 'USD', form: '10-K', fiscal_year: 2025, fiscal_period: 'FY', filed: '2026-02-01' },
+          { period: '2024-12-31', value: 500_000_000, unit: 'USD', form: '10-K', fiscal_year: 2024, fiscal_period: 'FY', filed: '2026-02-01' },
+        ],
+      });
+    }
+
+    const context: AnalysisContext = {
+      tickers: ['CMP', 'CMP2'],
+      type: 'comparison',
+      plan: { type: 'comparison', tickers: ['CMP', 'CMP2'], steps: [] },
+      results: [],
+      filings: {},
+      filing_content: {},
+      facts: { ...first.facts, ...second.facts },
+      statements: { ...first.statements, ...second.statements },
+      ratios: { ...first.ratios, ...second.ratios },
+      trends: { ...first.trends, ...second.trends },
+      policy: resolveReportingPolicy({
+        tickers: ['CMP', 'CMP2'],
+        type: 'comparison',
+        maxRetries: 1,
+        maxValidationLoops: 0,
+      }),
+    };
+
+    const insights = analyzeData(context, context.policy);
+    const reportModel = buildReportModel(context, insights);
+
+    // The broader cash metric should still show in comparison groups, not be N/A
+    for (const company of reportModel.companies) {
+      const liquidityGroup = company.comparisonGroups.find(g => g.title === 'Liquidity & Leverage');
+      assert.ok(liquidityGroup, 'Liquidity & Leverage group should exist');
+      const restrictedCashRow = liquidityGroup!.rows.find(r => r.label === 'Cash, Cash Equivalents & Restricted Cash');
+      if (restrictedCashRow) {
+        assert.notEqual(
+          restrictedCashRow.current,
+          null,
+          `${company.ticker}: Cash, Cash Equivalents & Restricted Cash should not be null in comparison when canonical value exists`,
+        );
+      }
+    }
   });
 });

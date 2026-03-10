@@ -7,9 +7,12 @@
 
 import type { ReportSection } from '@dolph/shared';
 import type { CanonicalReportPackage } from './canonical-report-package.js';
-import type { CompanyReportModel, ReportModel } from './report-model.js';
+import {
+  collectMetricBasisDisclosures,
+  type CompanyReportModel,
+  type ReportModel,
+} from './report-model.js';
 const FRONT_TABLE_MAX_ROWS = 8;
-const MAX_BASIS_DISCLOSURES = 4;
 
 /**
  * Build the Key Metrics section deterministically.
@@ -117,7 +120,7 @@ function buildComparisonMetricsTable(
       rows.push(`|:---|${tickers.map(() => '---:').join('|')}|`);
 
       for (const label of chunks[i]!) {
-        const values = companyRows.map(metricMap => metricMap.get(label)?.currentDisplay || 'Unavailable');
+        const values = companyRows.map(metricMap => metricMap.get(label)?.currentDisplay || 'Not reported');
         rows.push(`| ${label} | ${values.join(' | ')} |`);
       }
       rows.push('');
@@ -128,18 +131,7 @@ function buildComparisonMetricsTable(
 }
 
 function buildMetricBasisDisclosures(company: CompanyReportModel): string[] {
-  const lines: string[] = [];
-  const bases = company.metrics
-    .filter(metric => metric.basis)
-    .map(metric => metric.basis!);
-  const seen = new Set<string>();
-  for (const basis of bases) {
-    const text = `${basis.displayName}: ${basis.disclosureText || basis.note || humanizeBasis(basis.basis)}${basis.fallbackUsed ? ' Fallback was applied and is audit-traceable.' : ''}`;
-    if (seen.has(text)) continue;
-    seen.add(text);
-    lines.push(text);
-  }
-  return lines.slice(0, MAX_BASIS_DISCLOSURES);
+  return collectMetricBasisDisclosures(company);
 }
 
 function mergeMetricBasisDisclosures(
@@ -154,7 +146,7 @@ function mergeMetricBasisDisclosures(
       lines.push(disclosure);
     }
   }
-  return lines.slice(0, MAX_BASIS_DISCLOSURES);
+  return lines;
 }
 
 function companyComparisonDisclosure(model: ReportModel): string {
@@ -173,10 +165,6 @@ function companyComparisonDisclosure(model: ReportModel): string {
     return basis?.note || 'Peer metrics use each company’s latest annual filing and should be treated as screening output, not strict like-for-like comparison.';
   }
   return basis?.note || 'Peer metrics use each company’s latest annual filing with prominent disclosure that fiscal year-ends can differ across peers.';
-}
-
-function humanizeBasis(basis: string): string {
-  return basis.replace(/_/g, ' ');
 }
 
 function chunk<T>(arr: T[], size: number): T[][] {

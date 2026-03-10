@@ -10,7 +10,6 @@ import type {
   MetricAvailabilityReasonCode,
   MetricBasisUsage,
   ReportingPolicy,
-  TrendData,
 } from '@dolph/shared';
 import { formatMetricChange, getMappingByName, crossValidatedShareCount, shareCountDiverges } from '@dolph/shared';
 import {
@@ -313,15 +312,14 @@ const LEDGER_DEFINITIONS: MetricDefinition[] = [
     key: 'quick_ratio',
     displayName: 'Quick Ratio',
     unit: 'x',
-    dependencies: ['current_assets', 'current_liabilities'],
+    dependencies: ['current_assets', 'current_liabilities', 'inventory'],
     compute: (v, notes) => {
       const currentAssets = finiteOrNull(v['current_assets']);
       const currentLiabilities = finiteOrNull(v['current_liabilities']);
       if (currentAssets === null || currentLiabilities === null || currentLiabilities === 0) return null;
       const inventory = finiteOrNull(v['inventory']);
-      if (inventory === null) {
-        notes?.push('Inventory not reported; quick ratio equals current ratio');
-      }
+      if (inventory === null) return null;
+      if (notes) notes.push('Quick ratio excludes reported inventory from current assets.');
       return (currentAssets - (inventory ?? 0)) / currentLiabilities;
     },
   },
@@ -376,7 +374,6 @@ export function analyzeData(
   const { periodMaps, periodBases } = resolvePeriodAnchors(context, policy);
 
   for (const ticker of context.tickers) {
-    const trends = context.trends[ticker] || [];
     const facts = context.facts[ticker];
     const periodMap = periodMaps.get(ticker) || new Map<string, PeriodBucket>();
     const sourceMap = buildCanonicalAnnualSourceMap(context, ticker);
@@ -386,7 +383,7 @@ export function analyzeData(
     const keyMetrics = toKeyMetricsMap(ledger.metrics, sanityFlags.excludedMetricKeys);
 
     const redFlags = dedupeFlags([
-      ...identifyQuantRedFlags(keyMetrics, trends),
+      ...identifyQuantRedFlags(keyMetrics),
       ...sanityFlags.flags,
     ]);
     const strengths = identifyStrengths(keyMetrics);
@@ -395,7 +392,7 @@ export function analyzeData(
       snapshotPeriod: basis.current,
       priorPeriod: basis.prior,
       periodBasis: basis,
-      topTrends: identifyTopTrends(trends),
+      topTrends: identifyTopTrends(periodMap),
       redFlags,
       strengths,
       keyMetrics,
@@ -859,24 +856,34 @@ function computeLedgerMetrics(
   const priorRevenue = finiteOrNull(priorValues['revenue']);
   const currentAssets = finiteOrNull(snapshotValues['total_assets']);
   const priorAssets = finiteOrNull(priorValues['total_assets']);
+  const earlierPeriod = priorPeriod
+    ? Array.from(periodMap.keys())
+      .filter(period => period.localeCompare(priorPeriod) < 0)
+      .sort((a, b) => b.localeCompare(a))[0] ?? null
+    : null;
+  const earlierValues = earlierPeriod ? periodMap.get(earlierPeriod)?.values || {} : {};
+  const earlierAssets = finiteOrNull(earlierValues['total_assets']);
   const currentEquity = finiteOrNull(snapshotValues['stockholders_equity']);
   const priorEquity = finiteOrNull(priorValues['stockholders_equity']);
+  const earlierEquity = finiteOrNull(earlierValues['stockholders_equity']);
   const currentNetIncome = finiteOrNull(snapshotValues['net_income']);
   const priorNetIncome = finiteOrNull(priorValues['net_income']);
 
   const avgAssetsCurrent = average(currentAssets, priorAssets);
   const avgEquityCurrent = average(currentEquity, priorEquity);
+  const avgAssetsPrior = average(priorAssets, earlierAssets);
+  const avgEquityPrior = average(priorEquity, earlierEquity);
   const roaCurrent = policy.returnMetricBasisMode === 'average_balance'
-    ? safeDivide(currentNetIncome ?? undefined, avgAssetsCurrent ?? currentAssets ?? undefined)
+    ? safeDivide(currentNetIncome ?? undefined, avgAssetsCurrent ?? undefined)
     : safeDivide(currentNetIncome ?? undefined, currentAssets ?? undefined);
   const roaPrior = policy.returnMetricBasisMode === 'average_balance'
-    ? safeDivide(priorNetIncome ?? undefined, priorAssets ?? undefined)
+    ? safeDivide(priorNetIncome ?? undefined, avgAssetsPrior ?? undefined)
     : safeDivide(priorNetIncome ?? undefined, priorAssets ?? undefined);
   const roeCurrent = policy.returnMetricBasisMode === 'average_balance'
-    ? safeDivide(currentNetIncome ?? undefined, avgEquityCurrent ?? currentEquity ?? undefined)
+    ? safeDivide(currentNetIncome ?? undefined, avgEquityCurrent ?? undefined)
     : safeDivide(currentNetIncome ?? undefined, currentEquity ?? undefined);
   const roePrior = policy.returnMetricBasisMode === 'average_balance'
-    ? safeDivide(priorNetIncome ?? undefined, priorEquity ?? undefined)
+    ? safeDivide(priorNetIncome ?? undefined, avgEquityPrior ?? undefined)
     : safeDivide(priorNetIncome ?? undefined, priorEquity ?? undefined);
 
   upsertMetric(metrics, {
@@ -895,11 +902,11 @@ function computeLedgerMetrics(
       displayName: 'Return on Equity',
       basis: policy.returnMetricBasisMode,
       note: policy.returnMetricBasisMode === 'average_balance'
-        ? 'ROE uses average equity over the locked current/prior annual periods.'
+        ? 'ROE uses average equity for each annual period only when the adjacent annual balance is available.'
         : 'ROE uses ending equity for each locked annual period.',
     },
     note: policy.returnMetricBasisMode === 'average_balance'
-      ? 'Average-balance return policy applied.'
+      ? 'Average-balance return policy applied without substituting ending-balance fallbacks.'
       : 'Ending-balance return policy applied.',
   });
 
@@ -919,19 +926,27 @@ function computeLedgerMetrics(
       displayName: 'Return on Assets',
       basis: policy.returnMetricBasisMode,
       note: policy.returnMetricBasisMode === 'average_balance'
-        ? 'ROA uses average assets over the locked current/prior annual periods.'
+        ? 'ROA uses average assets for each annual period only when the adjacent annual balance is available.'
         : 'ROA uses ending assets for each locked annual period.',
     },
     note: policy.returnMetricBasisMode === 'average_balance'
-      ? 'Average-balance return policy applied.'
+      ? 'Average-balance return policy applied without substituting ending-balance fallbacks.'
       : 'Ending-balance return policy applied.',
   });
 
   const assetTurnoverCurrent = currentRevenue !== null
-    ? safeDivide(currentRevenue, avgAssetsCurrent ?? currentAssets ?? undefined)
+    ? (
+      policy.returnMetricBasisMode === 'average_balance'
+        ? safeDivide(currentRevenue, avgAssetsCurrent ?? undefined)
+        : safeDivide(currentRevenue, currentAssets ?? undefined)
+    )
     : null;
   const assetTurnoverPrior = priorRevenue !== null
-    ? safeDivide(priorRevenue, priorAssets ?? undefined)
+    ? (
+      policy.returnMetricBasisMode === 'average_balance'
+        ? safeDivide(priorRevenue, avgAssetsPrior ?? undefined)
+        : safeDivide(priorRevenue, priorAssets ?? undefined)
+    )
     : null;
   upsertMetric(metrics, {
     key: 'asset_turnover',
@@ -947,10 +962,14 @@ function computeLedgerMetrics(
     basis: {
       metric: 'asset_turnover',
       displayName: 'Asset Turnover',
-      basis: 'average_balance',
-      note: 'Asset turnover uses average assets for the current period and prior ending assets for the prior comparison.',
+      basis: policy.returnMetricBasisMode,
+      note: policy.returnMetricBasisMode === 'average_balance'
+        ? 'Asset turnover uses average assets for each annual period only when the adjacent annual balance is available.'
+        : 'Asset turnover uses ending assets for each locked annual period.',
     },
-    note: 'Average-balance efficiency policy applied.',
+    note: policy.returnMetricBasisMode === 'average_balance'
+      ? 'Average-balance efficiency policy applied without ending-balance fallback.'
+      : 'Ending-balance efficiency policy applied.',
   });
 
   return { metrics };
@@ -1001,6 +1020,22 @@ function runSanityChecks(
         flag: 'Balance sheet reconciliation gap',
         severity: 'medium',
         detail: `Assets do not reconcile with liabilities + equity within tolerance (gap ${roundSig(diff)}).`,
+      });
+    }
+  }
+
+  const pretaxIncome = finiteOrNull(currentValues['pretax_income']);
+  const netIncomeForIdentity = finiteOrNull(currentValues['net_income']);
+  const taxExpense = finiteOrNull(currentValues['income_tax_expense']);
+  if (pretaxIncome !== null && netIncomeForIdentity !== null && taxExpense !== null) {
+    const expectedPretax = netIncomeForIdentity + taxExpense;
+    const identityGap = Math.abs(pretaxIncome - expectedPretax);
+    const identityTolerance = Math.max(Math.abs(expectedPretax) * 0.05, 1_000_000);
+    if (identityGap > identityTolerance) {
+      flags.push({
+        flag: 'Pretax income identity gap',
+        severity: 'medium',
+        detail: `Pretax income (${roundSig(pretaxIncome)}) does not reconcile with net_income + income_tax_expense (${roundSig(expectedPretax)}).`,
       });
     }
   }
@@ -1090,39 +1125,67 @@ function toKeyMetricsMap(
   return out;
 }
 
-function identifyTopTrends(trends: TrendData[]): AnalysisInsights['topTrends'] {
-  return trends
-    .filter(t => t.cagr !== null && isFinite(t.cagr))
-    .sort((a, b) => Math.abs(b.cagr ?? 0) - Math.abs(a.cagr ?? 0))
-    .slice(0, 5)
-    .map(t => {
-      const mapping = getMappingByName(t.metric);
-      const latest = t.values[t.values.length - 1];
-      const cagr = t.cagr ?? 0;
+function identifyTopTrends(periodMap: Map<string, PeriodBucket>): AnalysisInsights['topTrends'] {
+  const candidateMetrics = [
+    'revenue',
+    'gross_profit',
+    'operating_income',
+    'net_income',
+    'operating_cash_flow',
+    'free_cash_flow',
+  ];
+
+  return candidateMetrics
+    .map(metric => {
+      const values = Array.from(periodMap.entries())
+        .map(([period, bucket]) => ({ period, value: finiteOrNull(bucket.values[metric]) }))
+        .filter((entry): entry is { period: string; value: number } => entry.value !== null)
+        .sort((a, b) => a.period.localeCompare(b.period));
+      if (values.length < 2) return null;
+
+      const first = values[0]!;
+      const last = values[values.length - 1]!;
+      const years = Math.max(values.length - 1, 1);
+      const cagr = first.value > 0 && last.value > 0
+        ? Math.pow(last.value / first.value, 1 / years) - 1
+        : null;
+      const trendSignal = cagr ?? ((last.value - first.value) / Math.max(Math.abs(first.value), 1));
+      const mapping = getMappingByName(metric);
 
       let direction: 'up' | 'down' | 'flat' = 'flat';
-      if (cagr > 0.02) direction = 'up';
-      else if (cagr < -0.02) direction = 'down';
+      if (trendSignal > 0.02) direction = 'up';
+      else if (trendSignal < -0.02) direction = 'down';
 
-      const pct = (cagr * 100).toFixed(1);
-      const description = direction === 'flat'
-        ? `${mapping?.displayName || t.metric} has been roughly flat.`
-        : `${mapping?.displayName || t.metric} has ${direction === 'up' ? 'grown' : 'declined'} at a ${pct}% CAGR.`;
+      const absSignal = Math.abs(trendSignal);
+      let description: string;
+      if (direction === 'flat') {
+        description = 'The multi-year trajectory has been broadly stable without a strong directional shift.';
+      } else if (direction === 'up') {
+        if (absSignal > 0.20) description = 'The scale-up across the observed annual periods is pronounced and financially material.';
+        else if (absSignal > 0.08) description = 'The multi-year progression is steady enough to suggest an improving operating profile.';
+        else description = 'The multi-year trend is positive, but the pace is moderate rather than transformative.';
+      } else {
+        if (absSignal > 0.20) description = 'The decline is steep enough to suggest a material deterioration in the operating base.';
+        else if (absSignal > 0.08) description = 'The contraction is sustained and likely to pressure margins or capital allocation choices.';
+        else description = 'The decline is gradual, but the direction remains negative across the observed periods.';
+      }
 
       return {
-        metric: t.metric,
-        displayName: mapping?.displayName || t.metric,
+        metric,
+        displayName: mapping?.displayName || metric,
         direction,
-        cagr: t.cagr,
-        latestValue: latest?.value ?? null,
+        cagr,
+        latestValue: last.value,
         description,
       };
-    });
+    })
+    .filter((trend): trend is NonNullable<typeof trend> => !!trend)
+    .sort((a, b) => Math.abs(b.cagr ?? 0) - Math.abs(a.cagr ?? 0))
+    .slice(0, 5);
 }
 
 function identifyQuantRedFlags(
   metrics: Record<string, KeyMetricValue>,
-  trends: TrendData[],
 ): AnalysisInsights['redFlags'] {
   const flags: AnalysisInsights['redFlags'] = [];
 
@@ -1171,17 +1234,6 @@ function identifyQuantRedFlags(
     });
   }
 
-  for (const trend of trends) {
-    for (const anomaly of trend.anomalies) {
-      const mapping = getMappingByName(trend.metric);
-      flags.push({
-        flag: `Anomaly in ${mapping?.displayName || trend.metric}`,
-        severity: 'medium',
-        detail: `${anomaly.description} (period: ${anomaly.period})`,
-      });
-    }
-  }
-
   return flags;
 }
 
@@ -1190,18 +1242,21 @@ function identifyStrengths(metrics: Record<string, KeyMetricValue>): AnalysisIns
 
   const grossMargin = metrics['Gross Margin'];
   if (grossMargin && isFinite(grossMargin.current) && grossMargin.current > 0.5) {
-    strengths.push({
-      metric: 'gross_margin',
-      detail: `Gross margin of ${(grossMargin.current * 100).toFixed(1)}% indicates strong pricing power.`,
-    });
+    const pct = (grossMargin.current * 100).toFixed(1);
+    const detail = grossMargin.current > 0.7
+      ? `Gross margin of ${pct}% reflects significant value capture, consistent with asset-light or IP-intensive business models.`
+      : `Gross margin of ${pct}% supports healthy unit economics and room for operating-expense absorption.`;
+    strengths.push({ metric: 'gross_margin', detail });
   }
 
   const roe = metrics['Return on Equity'];
-  if (roe && isFinite(roe.current) && roe.current > 0.15) {
-    strengths.push({
-      metric: 'roe',
-      detail: `ROE of ${(roe.current * 100).toFixed(1)}% indicates efficient use of shareholder capital.`,
-    });
+  const equity = metrics["Stockholders' Equity"];
+  if (roe && isFinite(roe.current) && roe.current > 0.15 && (!equity || equity.current > 0)) {
+    const pct = (roe.current * 100).toFixed(1);
+    const detail = roe.current > 0.30
+      ? `ROE of ${pct}% is well above the 15% institutional threshold, suggesting strong capital allocation.`
+      : `ROE of ${pct}% exceeds the 15% institutional threshold, reflecting productive deployment of book equity.`;
+    strengths.push({ metric: 'roe', detail });
   }
 
   const revenue = metrics['Revenue'];
@@ -1216,10 +1271,10 @@ function identifyStrengths(metrics: Record<string, KeyMetricValue>): AnalysisIns
     && revenueChangeDisplay !== 'N/A'
     && revenueChangeDisplay !== 'NM'
   ) {
-    strengths.push({
-      metric: 'revenue_growth',
-      detail: `Revenue is up ${revenueChangeDisplay} year over year, showing strong top-line momentum.`,
-    });
+    const detail = revenue.change > 0.25
+      ? `Revenue surged ${revenueChangeDisplay} year over year, indicating a step-change in demand or market expansion.`
+      : `Revenue grew ${revenueChangeDisplay} year over year, outpacing a typical low-single-digit baseline.`;
+    strengths.push({ metric: 'revenue_growth', detail });
   }
 
   const currentRatio = metrics['Current Ratio'];
@@ -1230,10 +1285,10 @@ function identifyStrengths(metrics: Record<string, KeyMetricValue>): AnalysisIns
     || (fcf && isFinite(fcf.current) && fcf.current < 0)
   );
   if (currentRatio && isFinite(currentRatio.current) && currentRatio.current > 1.5 && !hasCashStress) {
-    strengths.push({
-      metric: 'current_ratio',
-      detail: `Current ratio of ${currentRatio.current.toFixed(2)}x indicates solid liquidity.`,
-    });
+    const detail = currentRatio.current > 2.5
+      ? `Current ratio of ${currentRatio.current.toFixed(2)}x provides a wide liquidity cushion relative to near-term obligations.`
+      : `Current ratio of ${currentRatio.current.toFixed(2)}x is above the 1.5x threshold, indicating adequate near-term coverage.`;
+    strengths.push({ metric: 'current_ratio', detail });
   }
 
   return strengths;

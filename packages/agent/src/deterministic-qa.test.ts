@@ -390,6 +390,47 @@ describe('deterministic QA gates', () => {
     );
   });
 
+  it('does not block reports for pretax income identity gap (legitimate due to minority interests etc)', () => {
+    const context = makeContext('AMD');
+    // Set up pretax_income that doesn't match net_income + income_tax_expense
+    // This is legitimate — minority interests, discontinued ops, etc. break this identity
+    context.statements['AMD']![0]!.periods[0]!.data['income_tax_expense'] = 500_000_000;
+    context.statements['AMD']![0]!.periods[0]!.data['pretax_income'] = 6_000_000_000;
+    context.facts['AMD']!.facts.push(
+      {
+        metric: 'income_tax_expense',
+        periods: [
+          { period: '2025-12-31', value: 500_000_000, unit: 'USD', form: '10-K', filed: '2026-02-01' },
+          { period: '2024-12-31', value: 300_000_000, unit: 'USD', form: '10-K', filed: '2026-02-01' },
+        ],
+      },
+      {
+        metric: 'pretax_income',
+        periods: [
+          { period: '2025-12-31', value: 6_000_000_000, unit: 'USD', form: '10-K', filed: '2026-02-01' },
+          { period: '2024-12-31', value: 2_000_000_000, unit: 'USD', form: '10-K', filed: '2026-02-01' },
+        ],
+      },
+    );
+
+    const report = makeReport(
+      [
+        '*Snapshot period: FY2025. Prior period: FY2024.*',
+        '| Metric | Current Value | Prior Period | Change (%) |',
+        '|:---|---:|---:|---:|',
+        '| Revenue | $34.6B | $25.8B | 34.3% |',
+      ].join('\n'),
+      '',
+    );
+
+    const qa = runQA(report, context);
+    assert.equal(
+      qa.failures.some(f => f.gate === 'data.sanity' && f.source.includes('pretax_income')),
+      false,
+      'pretax identity gap should not fire as QA gate (handled as informational flag in analyzer instead)',
+    );
+  });
+
   it('accepts compact share displays that differ only by displayed rounding precision', () => {
     const context = makeContext('AMD');
     context.statements['AMD']![1]!.periods[0]!.data['shares_outstanding'] = 1_048_766_702;

@@ -1,0 +1,7 @@
+ticker,period,ratio,value,formula,components,notes
+MAC,2025-12-31,de,2.0059,(long_term_debt + short_term_debt) / stockholders_equity,stockholders_equity=2527070000;long_term_debt=5068946000;short_term_debt=0,
+MAC,2025-12-31,roe,-0.078,net_income / stockholders_equity,net_income=-197149000;stockholders_equity=2527070000,
+MAC,2025-12-31,roa,-0.0236,net_income / total_assets,net_income=-197149000;total_assets=8368685000,
+MAC,2025-12-31,net_margin,-0.1944,net_income / revenue,net_income=-197149000;revenue=1013983000,
+MAC,2025-12-31,eps,-0.78,eps_diluted,eps_diluted=-0.78,
+MAC,2025-12-31,bvps,9.8333,stockholders_equity / shares_outstanding,stockholders_equity=2527070000;shares_outstanding=256990913,

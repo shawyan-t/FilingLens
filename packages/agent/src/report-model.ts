@@ -96,7 +96,9 @@ export interface CompanyReportModel {
   snapshotLabel: string;
   priorLabel: string;
   metrics: CanonicalMetricCell[];
+  metricsByKey: Map<string, CanonicalMetricCell>;
   metricsByLabel: Map<string, CanonicalMetricCell>;
+  allMetricsByLabel: Map<string, CanonicalMetricCell>;
   dashboardGroups: CanonicalMetricGroup[];
   comparisonGroups: CanonicalMetricGroup[];
   statementTables: CanonicalStatementTable[];
@@ -113,6 +115,20 @@ export interface ReportModel {
   comparisonRowGroups: CanonicalMetricGroupContract[];
   companies: CompanyReportModel[];
   companiesByTicker: Map<string, CompanyReportModel>;
+}
+
+export function collectMetricBasisDisclosures(company: CompanyReportModel): string[] {
+  const seen = new Set<string>();
+  const lines: string[] = [];
+  for (const metric of company.metrics) {
+    const basis = metric.basis;
+    if (!basis) continue;
+    const text = `${basis.displayName}: ${basis.disclosureText || basis.note || humanizeBasis(basis.basis)}${basis.fallbackUsed ? ' Fallback was applied and is audit-traceable.' : ''}`;
+    if (seen.has(text)) continue;
+    seen.add(text);
+    lines.push(text);
+  }
+  return lines;
 }
 
 const METRIC_GROUPS: Array<{ title: string; metrics: string[] }> = [
@@ -228,7 +244,9 @@ export function buildCompanyReportModel(
   const insight = insights[ticker];
   const canonicalPeriodMap = buildCanonicalAnnualPeriodMap(context, ticker);
   const sourceMap = buildCanonicalAnnualSourceMap(context, ticker);
-  const metricCells = suppressDuplicateCashFamilyCells(buildMetricCells(insight));
+  const rawMetricCells = buildMetricCells(insight);
+  const allMetricsByLabel = new Map(rawMetricCells.map(metric => [metric.label, metric]));
+  const metricCells = suppressDuplicateCashFamilyCells(rawMetricCells);
   const dashboardGroups = buildMetricGroups(metricCells);
   const statementTables = buildStatementTables(context, ticker, insight, canonicalPeriodMap, sourceMap);
   const baseCompany = {
@@ -242,7 +260,9 @@ export function buildCompanyReportModel(
     snapshotLabel: insight?.snapshotPeriod ? formatFiscalPeriodLabel(insight.snapshotPeriod) : 'N/A',
     priorLabel: insight?.priorPeriod ? formatFiscalPeriodLabel(insight.priorPeriod) : 'N/A',
     metrics: metricCells,
+    metricsByKey: new Map(metricCells.map(metric => [metric.key, metric])),
     metricsByLabel: new Map(metricCells.map(metric => [metric.label, metric])),
+    allMetricsByLabel,
     dashboardGroups,
     comparisonGroups: [],
     statementTables,
@@ -330,7 +350,10 @@ function materiallyEquivalent(a: number, b: number): boolean {
   return delta <= Math.max(Math.abs(a), Math.abs(b), 1) * 0.01 + 100_000;
 }
 
-function createUnavailableCell(label: string): CanonicalMetricCell {
+function createUnavailableCell(
+  label: string,
+  reasonCode: MetricAvailabilityReasonCode = 'source_unavailable',
+): CanonicalMetricCell {
   return {
     key: label.toLowerCase().replace(/[^a-z0-9]+/g, '_'),
     label,
@@ -338,10 +361,10 @@ function createUnavailableCell(label: string): CanonicalMetricCell {
     current: null,
     prior: null,
     change: null,
-    currentDisplay: 'N/A',
-    priorDisplay: 'N/A',
-    changeDisplay: 'N/A',
-    availability: { current: 'source_unavailable', prior: 'source_unavailable' },
+    currentDisplay: formatMetricUnavailable(reasonCode),
+    priorDisplay: formatMetricUnavailable(reasonCode),
+    changeDisplay: formatMetricUnavailable(reasonCode),
+    availability: { current: reasonCode, prior: reasonCode },
   };
 }
 
@@ -353,8 +376,7 @@ function buildMetricGroups(metricCells: CanonicalMetricCell[]): CanonicalMetricG
       rows: group.rowLabels.map(label =>
         metricMap.get(label) || createUnavailableCell(label),
       ),
-    }))
-    .filter(group => group.rows.some(row => row.current !== null));
+    }));
 }
 
 function buildStatementTables(
@@ -534,7 +556,7 @@ function applyComparisonRowGroups(
   return comparisonRowGroups.map(group => ({
     title: group.title,
     rows: group.rowLabels.map(label =>
-      company.metricsByLabel.get(label) || createUnavailableCell(label),
+      company.allMetricsByLabel.get(label) || createUnavailableCell(label),
     ),
   }));
 }
@@ -543,19 +565,8 @@ function buildAppendixSupportNotes(company: CompanyReportModel): string[] {
   const periods = [company.snapshotLabel, company.priorLabel]
     .filter(label => label && label !== 'N/A')
     .join(' and ');
-  const basisNotes = company.metrics
-    .map(metric => metric.basis)
-    .filter((basis): basis is NonNullable<CanonicalMetricCell['basis']> => !!basis)
-    .filter((basis, idx, arr) => (
-      arr.findIndex(other =>
-        other.displayName === basis.displayName
-        && other.basis === basis.basis
-        && other.disclosureText === basis.disclosureText
-        && other.note === basis.note
-      ) === idx
-    ))
-    .slice(0, 2)
-    .map(basis => `${basis.displayName}: ${(basis.disclosureText || basis.note || basis.basis).replace(/[.\s]+$/g, '')}.`);
+  const basisNotes = collectMetricBasisDisclosures(company)
+    .map(note => `${note.replace(/[.\s]+$/g, '')}.`);
 
   const notes = [
     periods
@@ -563,7 +574,7 @@ function buildAppendixSupportNotes(company: CompanyReportModel): string[] {
       : 'Locked annual appendix basis is applied uniformly to the reported current and prior periods.',
     'Appendix rows are limited to the central statement mapping catalog on the locked annual periods; raw statement extras are never surfaced directly.',
     'Cash-family concepts preserve the filing labels directly, and the cash-flow ending balance remains a separate concept unless the filing reports the same cash-family line on the balance sheet.',
-    'Unavailable cells mean the locked filing basis did not report the value and no governed derivation was approved for display.',
+    'Cells marked "Not reported" mean the locked filing basis did not report the value and no governed derivation was approved for display.',
     ...basisNotes,
     `Primary filing anchor: ${company.alignedFiling?.form || 'annual filing'}${company.alignedFiling?.filed ? ` filed ${company.alignedFiling.filed}` : ''}.`,
   ];
@@ -707,22 +718,23 @@ function formatMetricUnavailable(reason: MetricAvailabilityReasonCode): string {
   switch (reason) {
     case 'comparability_policy':
     case 'policy_disallowed':
-      return 'Policy-excluded';
+      return 'N/A';
     case 'basis_conflict':
-      return 'Basis conflict';
+      return 'Extraction failure';
     case 'sanity_excluded':
-      return 'QA-excluded';
+      return 'Extraction failure';
     case 'statement_gap':
-      return 'Statement gap';
+      return 'Extraction failure';
     case 'missing_inputs':
+      return 'Not reported';
     case 'source_unavailable':
-      return 'Unavailable';
+      return 'Not reported';
     case 'ratio_fallback':
-      return 'Derived unavailable';
+      return 'Not reported';
     case 'reported':
     case 'derived':
     default:
-      return 'Unavailable';
+      return 'Not reported';
   }
 }
 
@@ -733,15 +745,28 @@ function formatMetricChangeDisplay(metric: LedgerMetric): string {
   const currentReason = metric.availability.current;
   const priorReason = metric.availability.prior;
   if (currentReason === 'comparability_policy' || priorReason === 'comparability_policy') {
-    return 'Policy-excluded';
+    return 'N/A';
   }
   if (currentReason === 'basis_conflict' || priorReason === 'basis_conflict') {
-    return 'Basis conflict';
+    return 'Extraction failure';
   }
   if (currentReason === 'sanity_excluded' || priorReason === 'sanity_excluded') {
-    return 'QA-excluded';
+    return 'Extraction failure';
   }
-  return 'Unavailable';
+  if (currentReason === 'statement_gap' || priorReason === 'statement_gap') {
+    return 'Extraction failure';
+  }
+  if (
+    currentReason === 'missing_inputs'
+    || priorReason === 'missing_inputs'
+    || currentReason === 'source_unavailable'
+    || priorReason === 'source_unavailable'
+    || currentReason === 'ratio_fallback'
+    || priorReason === 'ratio_fallback'
+  ) {
+    return 'Not reported';
+  }
+  return 'Not reported';
 }
 
 export function formatByUnit(value: number, unit?: string): string {
@@ -768,3 +793,6 @@ function formatStatementValue(metric: string, value: number, unit?: string): str
   return formatByUnit(value, unit);
 }
 
+function humanizeBasis(basis: string): string {
+  return basis.replace(/_/g, ' ');
+}

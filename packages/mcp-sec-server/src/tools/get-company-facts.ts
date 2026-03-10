@@ -114,7 +114,12 @@ export async function getCompanyFacts(params: GetCompanyFactsParams): Promise<Co
         globalLatestAnnualYear,
       );
       if (best) {
-        facts.push({ metric: mapping.standardName, periods: best.periods });
+        facts.push({
+          metric: mapping.standardName,
+          label: usGaap[best.tagName]?.label || ifrs[best.tagName]?.label || mapping.displayName,
+          description: usGaap[best.tagName]?.description || ifrs[best.tagName]?.description || '',
+          periods: best.periods,
+        });
         found = true;
       }
     }
@@ -130,7 +135,12 @@ export async function getCompanyFacts(params: GetCompanyFactsParams): Promise<Co
         globalLatestAnnualYear,
       );
       if (best) {
-        facts.push({ metric: mapping.standardName, periods: best.periods });
+        facts.push({
+          metric: mapping.standardName,
+          label: ifrs[best.tagName]?.label || usGaap[best.tagName]?.label || mapping.displayName,
+          description: ifrs[best.tagName]?.description || usGaap[best.tagName]?.description || '',
+          periods: best.periods,
+        });
         found = true;
       }
     }

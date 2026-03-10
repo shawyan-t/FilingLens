@@ -26,6 +26,7 @@ import { generateDeterministicNarrative } from './deterministic-narrative.js';
 import { runDeterministicQAGates, writeQAFailureReport } from './deterministic-qa.js';
 import { buildFinancialStatementsSection } from './statements-builder.js';
 import { buildKeyMetricsSection } from './metrics-builder.js';
+import { buildDataSourcesSection } from './sources-builder.js';
 import type { PipelineConfig, PipelineCallbacks, PipelineResult } from './types.js';
 import { getFilingContent } from '@dolph/mcp-sec-server/tools/get-filing-content.js';
 import { resolveReportingPolicy } from './report-policy.js';
@@ -77,7 +78,8 @@ export async function runPipeline(
       throw new Error(`Cannot generate report: all data fetches failed. Errors: ${errors}`);
     }
 
-    // Check data availability — comparison requires ALL tickers, single requires ANY
+    // Check data availability — comparison gracefully excludes tickers without
+    // XBRL data (ETFs, closed-end funds, etc.), single requires ANY
     if (config.type === 'comparison') {
       const missingTickers = config.tickers.filter(t => {
         const facts = context.facts[t];
@@ -85,11 +87,19 @@ export async function runPipeline(
       });
 
       if (missingTickers.length > 0) {
-        callbacks?.onStep?.('Gathering SEC data', 'error', `Missing data for: ${missingTickers.join(', ')}`);
-        throw new Error(
-          `Cannot generate comparison report: no financial facts for ${missingTickers.join(', ')}. ` +
-          'Comparison requires data for all tickers.',
-        );
+        const remaining = config.tickers.filter(t => !missingTickers.includes(t));
+        if (remaining.length < 2) {
+          callbacks?.onStep?.('Gathering SEC data', 'error', `Missing data for: ${missingTickers.join(', ')}`);
+          throw new Error(
+            `Cannot generate comparison report: no financial facts for ${missingTickers.join(', ')}. ` +
+            `Only ${remaining.length} ticker(s) have data; comparison requires at least 2.`,
+          );
+        }
+        // Exclude tickers without XBRL data and proceed with remaining peers
+        callbacks?.onStep?.('Gathering SEC data', 'running',
+          `Excluding ${missingTickers.join(', ')} (no XBRL data); proceeding with ${remaining.join(', ')}`);
+        config.tickers = remaining;
+        context.tickers = remaining;
       }
     } else {
       const hasFactsForAnyTicker = config.tickers.some(t => {
@@ -130,7 +140,7 @@ export async function runPipeline(
     const llmOptions = config.snapshotDate ? { temperature: 0, signal } : { signal };
     let sections: ReportSection[];
     let structuredNarrative = undefined as Report['narrative'] | undefined;
-    let deterministicNarrative = generateDeterministicNarrative(context, insights);
+    let deterministicNarrative = generateDeterministicNarrative(canonicalPackage);
 
     if (narrativeMode === 'deterministic') {
       sections = deterministicNarrative.sections;
@@ -143,7 +153,7 @@ export async function runPipeline(
           'Provide a provider or switch to deterministic mode.',
         );
       }
-      const generated = await generateExecutiveSummaryOnly(context, insights, llm, config.tone, llmOptions, policy);
+      const generated = await generateExecutiveSummaryOnly(context, insights, llm, config.tone, llmOptions, policy, reportModel);
       sections = deterministicNarrative.sections.map(section =>
         section.id === generated.section.id ? generated.section : section,
       );
@@ -168,7 +178,7 @@ export async function runPipeline(
     // Real QA validation happens in finalizeGovernedReport below.
     // This placeholder is replaced with the actual result after QA runs.
     const validation: import('@dolph/shared').ValidationResult = {
-      pass: true,
+      pass: false,
       issues: [],
       checked_at: new Date().toISOString(),
     };
@@ -243,7 +253,7 @@ export async function finalizeGovernedReport(
   canonicalPackage: CanonicalReportPackage,
   options: FinalizeGovernedReportOptions,
 ): Promise<Report> {
-  let finalReport = report;
+  let finalReport: Report = report;
   const qa = runDeterministicQAGates(finalReport, context, canonicalPackage);
 
   // Log warnings (non-fatal) to console
@@ -257,6 +267,19 @@ export async function finalizeGovernedReport(
     const qaPath = await writeQAFailureReport(finalReport, qa, options.auditOutputDir);
     throw new Error(`Report failed deterministic QA: ${qaPath}`);
   }
+
+  finalReport = {
+    ...finalReport,
+    validation: {
+      pass: qa.pass,
+      checked_at: finalReport.generated_at,
+      issues: qa.failures.map(failure => ({
+        section: failure.source,
+        issue: `[${failure.gate}] ${failure.message}`,
+        severity: failure.severity,
+      })),
+    },
+  };
 
   if (options.persistAuditArtifacts) {
     finalReport = {
@@ -319,44 +342,6 @@ async function alignFilingContentToLockedPeriods(
     });
     context.filing_content[ticker] = filing;
   }
-}
-
-/**
- * Build data sources section from context (deterministic).
- */
-function buildDataSourcesSection(
-  canonicalPackage: CanonicalReportPackage,
-): ReportSection {
-  const lines: string[] = [];
-  const model = canonicalPackage.reportModel;
-
-  for (const company of model.companies) {
-    const refs = company.filingReferences;
-    for (const ref of refs) {
-      const labelTicker = company.ticker;
-      const labelForm = ref.form || 'SEC filing';
-      const labelDate = ref.filed || 'date unavailable';
-      if (ref.url) {
-        lines.push(`- [${labelTicker} ${labelForm} (${labelDate})](${ref.url})`);
-      } else {
-        lines.push(`- ${labelTicker} ${labelForm} (${labelDate})`);
-      }
-    }
-  }
-
-  if (lines.length === 0) {
-    lines.push('- No SEC filings were retrieved for this analysis.');
-  }
-
-  lines.push('');
-  lines.push('Source: SEC EDGAR public filings.');
-  lines.push('Disclaimer: For research use only; not investment advice.');
-
-  return {
-    id: 'data_sources',
-    title: 'Data Sources',
-    content: lines.join('\n'),
-  };
 }
 
 // ── Utilities ───────────────────────────────────────────────────

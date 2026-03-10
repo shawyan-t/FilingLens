@@ -63,6 +63,8 @@ export interface ProvenanceReceipt {
 
 export interface FinancialFact {
   metric: string;
+  label?: string;
+  description?: string;
   periods: Array<{
     period: string;
     value: number;

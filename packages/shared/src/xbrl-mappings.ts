@@ -13,7 +13,7 @@
  */
 
 export type ConceptSelectionPolicy = 'ordered_tag_priority' | 'governed_revenue_scope';
-export const XBRL_CONCEPT_SELECTION_VERSION = '2026-03-08-concept-contract-1';
+export const XBRL_CONCEPT_SELECTION_VERSION = '2026-03-10-concept-contract-2';
 
 export type RevenueConceptScope =
   | 'total_revenues'
@@ -100,9 +100,12 @@ export const XBRL_MAPPINGS: XBRLMapping[] = [
       'CostOfRevenue',
       'CostOfGoodsSold',
       'CostOfServices',
+      'CostOfGoodsManufacturedAndSold',
+      'FinancialServicesRevenueCost',
     ],
     ifrsTags: [
       'CostOfSales',
+      'CostOfMerchandiseSoldAndServicesRendered',
     ],
     statement: 'income',
     unit: 'USD',
@@ -113,9 +116,11 @@ export const XBRL_MAPPINGS: XBRLMapping[] = [
     displayName: 'Gross Profit',
     xbrlTags: [
       'GrossProfit',
+      'GrossProfit1',
     ],
     ifrsTags: [
       'GrossProfit',
+      'GrossProfitLoss',
     ],
     statement: 'income',
     unit: 'USD',
@@ -158,6 +163,8 @@ export const XBRL_MAPPINGS: XBRLMapping[] = [
       'NetIncomeLoss',
       'ProfitLoss',
       'NetIncomeLossAvailableToCommonStockholdersBasic',
+      'NetIncomeLossAvailableToCommonStockholdersDiluted',
+      'IncomeLossFromContinuingOperations',
     ],
     ifrsTags: [
       'ProfitLoss',
@@ -199,9 +206,12 @@ export const XBRL_MAPPINGS: XBRLMapping[] = [
     xbrlTags: [
       'CommonStockSharesOutstanding',
       'EntityCommonStockSharesOutstanding',
+      'SharesOutstanding',
+      'CommonStockSharesIssued',
     ],
     ifrsTags: [
       'IssuedCapitalShares',
+      'OrdinarySharesIssued',
     ],
     statement: 'balance_sheet',
     unit: 'shares',
@@ -254,12 +264,18 @@ export const XBRL_MAPPINGS: XBRLMapping[] = [
     standardName: 'pretax_income',
     displayName: 'Pretax Income',
     xbrlTags: [
-      'IncomeBeforeTax',
+      'IncomeLossBeforeIncomeTaxes',
       'IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest',
+      'IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments',
+      'IncomeBeforeTax',
+      'IncomeLossFromContinuingOperationsBeforeIncomeTaxesDomestic',
+      'IncomeLossBeforeEquityMethodInvestments',
+      'LossBeforeIncomeTaxes',
     ],
     ifrsTags: [
       'ProfitLossBeforeTax',
       'ProfitLossBeforeTaxFromContinuingOperations',
+      'ProfitLossBeforeTaxExpenseBenefit',
     ],
     statement: 'income',
     unit: 'USD',
@@ -270,11 +286,15 @@ export const XBRL_MAPPINGS: XBRLMapping[] = [
     displayName: 'Income Tax Expense',
     xbrlTags: [
       'IncomeTaxExpenseBenefit',
-      'IncomeTaxesPaidNet',
+      'CurrentIncomeTaxExpenseBenefit',
+      'IncomeTaxExpenseBenefitContinuingOperations',
+      'DeferredIncomeTaxExpenseBenefit',
+      'IncomeTaxExpenseBenefitContinuingOperations',
     ],
     ifrsTags: [
       'IncomeTaxExpenseContinuingOperations',
       'IncomeTaxExpense',
+      'TaxExpenseIncome',
     ],
     statement: 'income',
     unit: 'USD',
@@ -317,10 +337,13 @@ export const XBRL_MAPPINGS: XBRLMapping[] = [
     xbrlTags: [
       'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest',
       'StockholdersEquity',
+      'MembersEquity',
+      'PartnersCapital',
     ],
     ifrsTags: [
       'Equity',
       'EquityAttributableToOwnersOfParent',
+      'TotalEquity',
     ],
     statement: 'balance_sheet',
     unit: 'USD',
@@ -373,6 +396,7 @@ export const XBRL_MAPPINGS: XBRLMapping[] = [
     xbrlTags: [
       'CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents',
       'CashAndCashEquivalentsAndRestrictedCash',
+      'CashCashEquivalentsAndRestrictedCash',
     ],
     ifrsTags: [
       'CashAndCashEquivalentsIncludingRestrictedCash',
@@ -402,6 +426,7 @@ export const XBRL_MAPPINGS: XBRLMapping[] = [
       'RestrictedCashAndCashEquivalentsAtCarryingValue',
       'RestrictedCashAndCashEquivalents',
       'RestrictedCashCurrent',
+      'RestrictedCash',
     ],
     ifrsTags: [
       'RestrictedCash',
@@ -419,11 +444,17 @@ export const XBRL_MAPPINGS: XBRLMapping[] = [
       'DebtAndFinanceLeaseLiabilities',
       'Debt',
       'DebtInstrumentCarryingAmount',
+      'LongTermDebtAndCapitalLeaseObligationsIncludingCurrentMaturities',
+      'DebtLongtermAndShorttermCombinedAmount',
+      'LongTermDebtAndLeaseObligations',
+      'LongTermDebtAndFinanceLeaseObligations',
     ],
     ifrsTags: [
       'Borrowings',
       'LoansAndBorrowings',
       'TotalBorrowings',
+      'BorrowingsAndFinanceLeaseLiabilities',
+      'InterestBearingLoansAndBorrowings',
     ],
     statement: 'balance_sheet',
     unit: 'USD',
@@ -499,9 +530,13 @@ export const XBRL_MAPPINGS: XBRLMapping[] = [
     displayName: 'Short-Term Investments',
     xbrlTags: [
       'ShortTermInvestments',
+      'OtherShortTermInvestments',
+      'AvailableForSaleSecuritiesDebtSecuritiesCurrent',
+      'AvailableForSaleSecuritiesCurrent',
     ],
     ifrsTags: [
       'ShorttermInvestments',
+      'CurrentFinancialAssetsAvailableForSale',
     ],
     statement: 'balance_sheet',
     unit: 'USD',
@@ -513,9 +548,13 @@ export const XBRL_MAPPINGS: XBRLMapping[] = [
     xbrlTags: [
       'MarketableSecuritiesCurrent',
       'AvailableForSaleSecuritiesCurrent',
+      'TradingSecuritiesCurrent',
+      'HeldToMaturitySecuritiesCurrent',
+      'AvailableForSaleDebtSecuritiesCurrent',
     ],
     ifrsTags: [
       'CurrentFinancialAssetsAtFairValueThroughProfitOrLoss',
+      'CurrentFinancialAssetsAtFairValue',
     ],
     statement: 'balance_sheet',
     unit: 'USD',
@@ -569,6 +608,7 @@ export const XBRL_MAPPINGS: XBRLMapping[] = [
     displayName: 'Other Current Liabilities',
     xbrlTags: [
       'OtherLiabilitiesCurrent',
+      'OtherAccruedLiabilitiesCurrent',
     ],
     ifrsTags: [
       'OtherCurrentLiabilities',
@@ -657,13 +697,32 @@ export const XBRL_MAPPINGS: XBRLMapping[] = [
     standardName: 'capex',
     displayName: 'Capital Expenditures',
     xbrlTags: [
+      'CapitalExpenditures',
       'PaymentsToAcquirePropertyPlantAndEquipment',
       'PaymentsToAcquireProductiveAssets',
+      'CapitalExpenditureDiscontinuedOperations',
+      'PaymentsToAcquireOilAndGasPropertyAndEquipment',
+      'PaymentsToDevelopOilAndGasProperties',
+      'PaymentsForProvedPropertyAcquisitionCosts',
+      'PaymentsForCapitalImprovements',
+      'PaymentsForCapitalizedSoftwareDevelopmentCosts',
+      'PaymentsToAcquireRealEstateHeldForInvestment',
+      'PaymentsToAcquireInvestmentProperty',
+      'PaymentsForTenantImprovements',
+      'PaymentsForRedevelopmentOfRealEstateAssets',
+      'ExplorationAndDevelopmentCosts',
+      'PaymentsForExplorationAndEvaluationAssets',
+      'PaymentsToAcquireOtherPropertyPlantAndEquipment',
+      'PaymentsToAcquireMachineryAndEquipment',
+      'PropertyPlantAndEquipmentAdditions',
       'CapitalExpendituresIncurredButNotYetPaid',
     ],
     ifrsTags: [
       'PurchaseOfPropertyPlantAndEquipmentClassifiedAsInvestingActivities',
       'AcquisitionsOfPropertyPlantAndEquipment',
+      'PurchaseOfInvestmentProperty',
+      'PurchaseOfIntangibleAssetsClassifiedAsInvestingActivities',
+      'PurchaseOfOtherNoncurrentAssets',
     ],
     statement: 'cash_flow',
     unit: 'USD',
@@ -730,6 +789,8 @@ export const XBRL_MAPPINGS: XBRLMapping[] = [
     xbrlTags: [
       'DepreciationDepletionAndAmortization',
       'DepreciationAmortizationAndAccretionNet',
+      'DepreciationAndAmortization',
+      'Depreciation',
     ],
     ifrsTags: [
       'DepreciationAmortisationAndImpairment',

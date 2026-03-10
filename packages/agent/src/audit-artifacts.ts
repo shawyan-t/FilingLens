@@ -74,6 +74,30 @@ export async function writeAuditArtifacts(input: AuditArtifactInput): Promise<Au
     files,
   );
 
+  // 4. Sealed report model
+  await writeJson(
+    artifactDir,
+    'report-model.json',
+    input.reportModel,
+    files,
+  );
+
+  // 5. Rendered sections
+  await writeJson(
+    artifactDir,
+    'sections.json',
+    input.report.sections,
+    files,
+  );
+
+  // 6. Structured narrative payload
+  await writeJson(
+    artifactDir,
+    'narrative.json',
+    input.report.narrative || null,
+    files,
+  );
+
   return {
     directory: artifactDir,
     generated_at: input.report.generated_at,

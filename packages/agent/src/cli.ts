@@ -189,6 +189,7 @@ function buildCallbacks(outputFormat: 'terminal' | 'pdf' | 'both'): PipelineCall
         if (wantCSV) {
           try {
             const csv = await exportCSV(report, context, canonicalPackage.reportModel, defaultReportsDir());
+            console.log(`  ${GREEN}✓${RESET} Facts CSV:   ${BOLD}${csv.factsPath}${RESET}`);
             console.log(`  ${GREEN}✓${RESET} Metrics CSV: ${BOLD}${csv.metricsPath}${RESET}`);
             console.log(`  ${GREEN}✓${RESET} Ratios CSV:  ${BOLD}${csv.ratiosPath}${RESET}`);
           } catch (err) {
@@ -197,8 +198,8 @@ function buildCallbacks(outputFormat: 'terminal' | 'pdf' | 'both'): PipelineCall
         }
       }
     },
-    onError(error: string) {
-      console.error(`${RED}Error: ${error}${RESET}`);
+    onError(_error: string) {
+      // The main CLI loop prints terminal errors once after the pipeline throws.
     },
   };
 }

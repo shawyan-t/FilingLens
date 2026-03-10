@@ -11,7 +11,10 @@ import {
   REQUIRED_SINGLE_SECTIONS,
 } from '@dolph/shared';
 import type { AnalysisInsights } from './analyzer.js';
-import { normalizeMissingDataMarkdown, parseMetricRows } from './pdf-render-rules.js';
+import { isUnavailableDisplay, normalizeMissingDataMarkdown } from './pdf-render-rules.js';
+import { buildKeyMetricsSection } from './metrics-builder.js';
+import { buildFinancialStatementsSection } from './statements-builder.js';
+import { buildDataSourcesSection } from './sources-builder.js';
 import {
   buildCanonicalAnnualPeriodMap,
   buildCanonicalAnnualSourceMap,
@@ -53,8 +56,8 @@ const GATE_SEVERITY: Record<GateId, QASeverity> = {
   'data.period_coherence': 'error',
   'data.sanity': 'error',
   'data.units': 'warning',
-  'data.no_fake_na': 'warning',
-  'narrative.threshold_alignment': 'warning',
+  'data.no_fake_na': 'error',
+  'narrative.threshold_alignment': 'error',
   'narrative.templated_repetition': 'warning',
   'layout.truncation': 'warning',
   'layout.orphan_headers': 'warning',
@@ -78,11 +81,11 @@ export interface DeterministicQAResult {
 const METRIC_DEPENDENCIES: Record<string, string[]> = {
   'Total Debt': ['total_debt'],
   'Free Cash Flow': ['free_cash_flow'],
-  'Earnings Per Share (Diluted)': ['eps_diluted'],
+  'Earnings Per Share (Diluted)': ['net_income', 'weighted_avg_shares_diluted'],
   'Book Value Per Share': ['stockholders_equity', 'shares_outstanding'],
   'Debt-to-Equity': ['total_debt', 'stockholders_equity'],
   'Current Ratio': ['current_assets', 'current_liabilities'],
-  'Quick Ratio': ['current_assets', 'current_liabilities'],
+  'Quick Ratio': ['current_assets', 'current_liabilities', 'inventory'],
   'Operating Margin': ['operating_income', 'revenue'],
   'Net Margin': ['net_income', 'revenue'],
   'Gross Margin': ['gross_profit', 'revenue'],
@@ -141,15 +144,15 @@ export function runDeterministicQAGates(
   }
 
   if (report.type === 'single') {
-    runSingleReportCrossSectionGates(report, context, insights, failures);
+    runSingleReportCrossSectionGates(report, context, canonicalPackage, failures);
   } else {
-    runComparisonReportCrossSectionGates(report, context, insights, failures);
+    runComparisonReportCrossSectionGates(report, context, canonicalPackage, failures);
   }
 
   runSectionContractGates(report, failures);
-  runPackageContractGates(pkg, failures);
+  runPackageContractGates(report, pkg, failures);
   runCashFamilyPresentationGates(pkg, failures);
-  runNarrativeGates(report, context, insights, failures);
+  runNarrativeGates(report, context, insights, pkg, failures);
 
   return {
     pass: failures.filter(f => f.severity === 'error').length === 0,
@@ -195,10 +198,24 @@ function runSectionContractGates(
 }
 
 function runPackageContractGates(
+  report: Report,
   canonicalPackage: CanonicalReportPackage,
   failures: QAFailure[],
 ): void {
   const model = canonicalPackage.reportModel;
+  const expectedSections = new Map<string, string>([
+    ['key_metrics', buildKeyMetricsSection(canonicalPackage).content.trim()],
+    ['financial_statements', buildFinancialStatementsSection(canonicalPackage).content.trim()],
+    ['data_sources', buildDataSourcesSection(canonicalPackage).content.trim()],
+  ]);
+  const actualSections = new Map(report.sections.map(section => [section.id, section.content.trim()]));
+
+  for (const [sectionId, expected] of expectedSections) {
+    const actual = actualSections.get(sectionId);
+    if ((actual || '') !== expected) {
+      pushFailure(failures, 'data.cross_section_equality', `section:${sectionId}`, 'Rendered deterministic section drifted from the sealed canonical package.');
+    }
+  }
 
   for (const company of model.companies) {
     const expectedPeriods = [company.snapshotPeriod, company.priorPeriod]
@@ -272,19 +289,17 @@ function runCashFamilyPresentationGates(
 function runSingleReportCrossSectionGates(
   report: Report,
   context: AnalysisContext,
-  insights: InsightsMap,
+  canonicalPackage: CanonicalReportPackage,
   failures: QAFailure[],
 ): void {
   const ticker = report.tickers[0]!;
-  const insight = insights[ticker];
+  const insight = canonicalPackage.insights[ticker];
   if (!insight) return;
-
-  const keyMetricsSection = report.sections.find(s => s.id === 'key_metrics')?.content || '';
-  const rows = parseMetricRows(normalizeMissingDataMarkdown(keyMetricsSection));
-  const rowMap = new Map(rows.map(r => [r.metric, r]));
+  const company = canonicalPackage.reportModel.companiesByTicker.get(ticker);
+  if (!company) return;
 
   for (const [name, metric] of Object.entries(insight.keyMetrics)) {
-    const row = rowMap.get(name);
+    const row = company.metricsByLabel.get(name);
     if (!row) {
       if (REQUIRED_DASHBOARD_METRICS.has(name)) {
         pushFailure(failures, 'data.cross_section_equality', `dashboard:${name}`, 'Required canonical metric is missing from dashboard output.');
@@ -292,32 +307,12 @@ function runSingleReportCrossSectionGates(
       continue;
     }
 
-    const parsedCurrent = parseDisplayNumber(row.current, metric.unit);
-    const parsedPrior = parseDisplayNumber(row.prior, metric.unit);
-
-    if (parsedCurrent === null && metric.current !== null) {
+    if (isUnavailableDisplay(row.currentDisplay) && metric.current !== null) {
       pushFailure(failures, 'data.no_fake_na', `dashboard:${name}`, 'Current value is N/A in dashboard but computable in canonical metrics.');
-    } else if (parsedCurrent !== null && !withinTolerance(row.current, parsedCurrent, metric.current, metric.unit)) {
-      pushFailure(failures, 'data.cross_section_equality', `dashboard:${name}`, `Current value mismatch (dashboard ${row.current} vs canonical ${metric.current}).`);
     }
 
-    if (parsedPrior === null && metric.prior !== null) {
+    if (isUnavailableDisplay(row.priorDisplay) && metric.prior !== null) {
       pushFailure(failures, 'data.no_fake_na', `dashboard:${name}`, 'Prior value is N/A in dashboard but computable in canonical metrics.');
-    } else if (
-      metric.prior !== null &&
-      parsedPrior !== null &&
-      !withinTolerance(row.prior, parsedPrior, metric.prior, metric.unit)
-    ) {
-      pushFailure(failures, 'data.cross_section_equality', `dashboard:${name}`, `Prior value mismatch (dashboard ${row.prior} vs canonical ${metric.prior}).`);
-    }
-
-    if (metric.unit === 'USD') {
-      if (/\$0\.00B/i.test(row.current) && Math.abs(metric.current) < 100_000_000) {
-        pushFailure(failures, 'data.units', `dashboard:${name}`, 'Value displayed as $0.00B; unit scaling should switch to $M.');
-      }
-      if (metric.prior !== null && /\$0\.00B/i.test(row.prior) && Math.abs(metric.prior) < 100_000_000) {
-        pushFailure(failures, 'data.units', `dashboard:${name}`, 'Prior value displayed as $0.00B; unit scaling should switch to $M.');
-      }
     }
   }
 
@@ -344,9 +339,11 @@ function runSingleReportCrossSectionGates(
 function runComparisonReportCrossSectionGates(
   report: Report,
   context: AnalysisContext,
-  insights: InsightsMap,
+  canonicalPackage: CanonicalReportPackage,
   failures: QAFailure[],
 ): void {
+  const insights = canonicalPackage.insights;
+  const reportModel = canonicalPackage.reportModel;
   const policy = report.policy || context.policy;
   const comparisonBasis = report.comparison_basis || context.comparison_basis;
   const missingSnapshotPeriods = context.tickers.filter(ticker => !insights[ticker]?.snapshotPeriod);
@@ -378,36 +375,23 @@ function runComparisonReportCrossSectionGates(
     pushFailure(failures, 'data.period_coherence', 'comparison:policy', 'Institutional comparison mode requires overlap-normalized periods, but peers are locked to different annual periods.');
   }
 
-  const keyMetricsSection = report.sections.find(s => s.id === 'key_metrics')?.content || '';
-  const tableMap = parseComparisonMetricTable(keyMetricsSection, context.tickers);
-
   for (const ticker of context.tickers) {
     const insight = insights[ticker];
+    const company = reportModel.companiesByTicker.get(ticker);
     if (!insight) continue;
+    if (!company) continue;
 
     for (const [name, metric] of Object.entries(insight.keyMetrics)) {
-      const row = tableMap.get(name);
-      const cell = row?.get(ticker.toUpperCase());
-      if (cell === undefined) {
+      const row = company.metricsByLabel.get(name);
+      if (!row) {
         if (REQUIRED_DASHBOARD_METRICS.has(name)) {
           pushFailure(failures, 'data.cross_section_equality', `comparison:${ticker}:${name}`, 'Required canonical metric is missing from comparison output.');
         }
         continue;
       }
 
-      const parsedCurrent = parseDisplayNumber(cell, metric.unit);
-      if (parsedCurrent === null && metric.current !== null) {
+      if (isUnavailableDisplay(row.currentDisplay) && metric.current !== null) {
         pushFailure(failures, 'data.no_fake_na', `comparison:${ticker}:${name}`, 'Current value is N/A in comparison output but computable in canonical metrics.');
-      } else if (
-        parsedCurrent !== null &&
-        metric.current !== null &&
-        !withinTolerance(cell, parsedCurrent, metric.current, metric.unit)
-      ) {
-        pushFailure(failures, 'data.cross_section_equality', `comparison:${ticker}:${name}`, `Current value mismatch (comparison ${cell} vs canonical ${metric.current}).`);
-      }
-
-      if (metric.unit === 'USD' && /\$0\.00B/i.test(cell) && Math.abs(metric.current) < 100_000_000) {
-        pushFailure(failures, 'data.units', `comparison:${ticker}:${name}`, 'Value displayed as $0.00B; unit scaling should switch to $M.');
       }
     }
 
@@ -504,6 +488,12 @@ function runSanityGatesForTicker(
     }
   }
 
+  // NOTE: pretax_income ≈ net_income + income_tax_expense is NOT enforced here
+  // as a QA gate. Unlike the balance sheet identity (A = L + E), this relationship
+  // breaks legitimately due to minority interests, discontinued operations,
+  // preferred dividends, etc. It is flagged as an informational red flag in
+  // analyzer.ts runSanityChecks() instead.
+
   // Shares-basis validation and labeling.
   const currShares = finite(current['shares_outstanding']);
   const prevShares = finite(prior['shares_outstanding']);
@@ -551,49 +541,11 @@ function runSanityGatesForTicker(
   }
 }
 
-function parseComparisonMetricTable(
-  markdown: string,
-  tickers: string[],
-): Map<string, Map<string, string>> {
-  const out = new Map<string, Map<string, string>>();
-  const tickerSet = new Set(tickers.map(t => t.toUpperCase()));
-  const lines = normalizeMissingDataMarkdown(markdown).split('\n');
-  let activeHeaders: string[] | null = null;
-
-  for (const raw of lines) {
-    const line = raw.trim();
-    if (!line.startsWith('|')) {
-      activeHeaders = null;
-      continue;
-    }
-    const cells = line.replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim());
-    if (cells.length < 2) continue;
-    const first = cells[0]!.toLowerCase();
-    if (first === 'metric') {
-      activeHeaders = cells.map(c => c.toUpperCase());
-      continue;
-    }
-    if (/^:?-{2,}:?$/.test(first)) continue;
-    if (!activeHeaders || activeHeaders[0] !== 'METRIC') continue;
-
-    const metric = cells[0]!;
-    if (!metric || /snapshot period/i.test(metric)) continue;
-    const row = out.get(metric) || new Map<string, string>();
-    for (let idx = 1; idx < cells.length; idx++) {
-      const header = activeHeaders[idx];
-      if (!header || !tickerSet.has(header)) continue;
-      row.set(header, normalizeCell(cells[idx] || 'N/A'));
-    }
-    if (row.size > 0) out.set(metric, row);
-  }
-
-  return out;
-}
-
 function runNarrativeGates(
   report: Report,
   context: AnalysisContext,
   insights: InsightsMap,
+  canonicalPackage: CanonicalReportPackage,
   failures: QAFailure[],
 ): void {
   if (report.narrative?.sections) {
@@ -601,6 +553,12 @@ function runNarrativeGates(
     const sectionContentById = new Map(report.sections.map(section => [section.id, section.content.trim()]));
     for (const insight of Object.values(insights)) {
       for (const factId of Object.keys(insight.canonicalFacts || {})) validFactIds.add(factId);
+    }
+    for (const company of canonicalPackage.reportModel.companies) {
+      for (const metricKey of company.metricsByKey.keys()) validFactIds.add(metricKey);
+      for (const periodValues of company.canonicalPeriodMap.values()) {
+        for (const factId of Object.keys(periodValues)) validFactIds.add(factId);
+      }
     }
     for (const section of report.narrative.sections) {
       const rendered = section.rendered_content?.trim();
@@ -701,74 +659,6 @@ function hasDependencies(values: Record<string, number>, deps: string[]): boolea
   return deps.every(dep => values[dep] !== undefined && isFinite(values[dep]!));
 }
 
-
-function parseDisplayNumber(raw: string, unit: string): number | null {
-  const text = raw.trim();
-  if (!text || /^n\/a$/i.test(text)) return null;
-  const clean = text.replace(/,/g, '');
-
-  if (unit === '%') {
-    const n = Number.parseFloat(clean.replace('%', ''));
-    return isFinite(n) ? n / 100 : null;
-  }
-  if (unit === 'x') {
-    const n = Number.parseFloat(clean.replace('x', ''));
-    return isFinite(n) ? n : null;
-  }
-  if (unit === 'USD/shares') {
-    const n = Number.parseFloat(clean.replace('$', ''));
-    return isFinite(n) ? n : null;
-  }
-  if (unit === 'shares') {
-    return parseCompactNumber(clean);
-  }
-  // USD compact
-  return parseCompactNumber(clean.replace('$', ''));
-}
-
-function normalizeCell(v: string): string {
-  const trimmed = v.trim();
-  if (!trimmed || /^[-—]$/.test(trimmed) || /^n\/a$/i.test(trimmed)) return 'N/A';
-  return trimmed;
-}
-
-function parseCompactNumber(clean: string): number | null {
-  const n = Number.parseFloat(clean.replace(/[^0-9.\-]/g, ''));
-  if (!isFinite(n)) return null;
-  if (/B$/i.test(clean)) return n * 1e9;
-  if (/M$/i.test(clean)) return n * 1e6;
-  if (/K$/i.test(clean)) return n * 1e3;
-  return n;
-}
-
-function withinTolerance(raw: string, parsed: number, canonical: number, unit: string): boolean {
-  const abs = Math.abs(canonical);
-  if (unit === '%' || unit === 'x' || unit === 'USD/shares') {
-    return Math.abs(parsed - canonical) <= 0.02;
-  }
-  const tol = Math.max(abs * 0.03, displayRoundingTolerance(raw), 1_000_000);
-  return Math.abs(parsed - canonical) <= tol;
-}
-
-function displayRoundingTolerance(raw: string): number {
-  const trimmed = raw.trim();
-  if (!trimmed || /^n\/a$/i.test(trimmed)) return 0;
-  const suffix = /([BMK])$/i.exec(trimmed)?.[1]?.toUpperCase() || '';
-  const decimals = countDisplayedDecimals(trimmed);
-  const scale = suffix === 'B'
-    ? 1e9
-    : suffix === 'M'
-      ? 1e6
-      : suffix === 'K'
-        ? 1e3
-        : 1;
-  return (scale / Math.pow(10, decimals)) / 2;
-}
-
-function countDisplayedDecimals(raw: string): number {
-  const match = raw.replace(/,/g, '').match(/-?\d+(?:\.(\d+))?/);
-  return match?.[1]?.length || 0;
-}
 
 function finite(v: number | undefined): number | null {
   if (v === undefined) return null;
