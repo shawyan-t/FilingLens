@@ -194,9 +194,8 @@ function buildCallbacks(outputFormat: 'terminal' | 'pdf' | 'both'): PipelineCall
         if (wantCSV) {
           try {
             const csv = await exportCSV(report, context, canonicalPackage.reportModel, defaultReportsDir());
-            console.log(`  ${GREEN}✓${RESET} Facts CSV:   ${BOLD}${csv.factsPath}${RESET}`);
-            console.log(`  ${GREEN}✓${RESET} Metrics CSV: ${BOLD}${csv.metricsPath}${RESET}`);
-            console.log(`  ${GREEN}✓${RESET} Ratios CSV:  ${BOLD}${csv.ratiosPath}${RESET}`);
+            console.log(`  ${GREEN}✓${RESET} Data CSV: ${BOLD}${csv.combinedPath}${RESET}`);
+            console.log(`  ${GREEN}✓${RESET} Chart CSVs: ${BOLD}${csv.chartDataDir}${RESET} ${DIM}(${csv.chartPaths.length} files)${RESET}`);
           } catch (err) {
             console.error(`  ${RED}✗${RESET} CSV export failed: ${err instanceof Error ? err.message : err}`);
           }

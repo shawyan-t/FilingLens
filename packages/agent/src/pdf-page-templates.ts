@@ -326,7 +326,9 @@ interface VisualItem {
   kind: 'chart';
   title: string;
   caption: string;
-  svg?: string;
+  layout: 'standard' | 'compact';
+  assetType?: 'svg' | 'png';
+  assetContent?: string;
 }
 
 function buildVisualPages(
@@ -337,40 +339,50 @@ function buildVisualPages(
   const identifier = report.type === 'comparison'
     ? report.tickers.join(' vs ')
     : (reportModel.companies[0]?.companyName || report.tickers[0] || 'N/A');
-  const visuals: VisualItem[] = [];
-
-  if (chartSet.revenueMarginChart) visuals.push({
-    kind: 'chart',
-    title: 'Revenue Growth & Margin Profile',
-    caption: 'Revenue trend and margin structure across the most recent annual periods.',
-    svg: chartSet.revenueMarginChart,
-  });
-  if (chartSet.fcfBridgeChart) visuals.push({
-    kind: 'chart',
-    title: 'Cash Flow Conversion',
-    caption: 'Bridge from earnings to free cash flow to assess conversion quality.',
-    svg: chartSet.fcfBridgeChart,
-  });
+  const visuals: VisualItem[] = chartSet.items
+    .filter(item => item.renderStatus === 'rendered' && !!item.asset?.content)
+    .map(item => ({
+      kind: 'chart',
+      title: item.title,
+      caption: item.caption,
+      layout: item.layout,
+      assetType: item.asset?.assetType,
+      assetContent: item.asset?.content,
+    }));
 
   if (visuals.length === 0) return [];
 
-  return [`
-    <section class="report-page page-visual">
-      ${renderPageHeader('Visual Highlights', 'Charts', identifier)}
-      ${PERIOD_BANNER_SLOT}
-      <div class="visual-grid ${visuals.length === 1 ? 'single' : ''}">
-        ${visuals.map(card => `
-          <figure class="visual-card">
-            <div class="visual-frame">${card.svg || ''}</div>
-            <figcaption>
-              <h3>${escapeHTML(card.title)}</h3>
-              <p>${escapeHTML(card.caption)}</p>
-            </figcaption>
-          </figure>
-        `).join('\n')}
-      </div>
-    </section>
-  `];
+  const pages: string[] = [];
+  const perPage = 2;
+  for (let i = 0; i < visuals.length; i += perPage) {
+    const chunk = visuals.slice(i, i + perPage);
+    pages.push(`
+      <section class="report-page page-visual">
+        ${renderPageHeader(i === 0 ? 'Visual Highlights' : 'Visual Highlights (Cont.)', 'Charts', identifier)}
+        ${PERIOD_BANNER_SLOT}
+        <div class="visual-grid ${chunk.length === 1 ? 'single' : ''}">
+          ${chunk.map(card => `
+            <figure class="visual-card ${card.layout === 'compact' ? 'compact' : ''}">
+              <figcaption class="visual-copy">
+                <h3>${escapeHTML(card.title)}</h3>
+                <p>${escapeHTML(card.caption)}</p>
+              </figcaption>
+              <div class="visual-frame">${renderVisualAsset(card)}</div>
+            </figure>
+          `).join('\n')}
+        </div>
+      </section>
+    `);
+  }
+  return pages;
+}
+
+function renderVisualAsset(card: VisualItem): string {
+  if (!card.assetContent) return '';
+  if (card.assetType === 'png') {
+    return `<img src="${escapeHTML(card.assetContent)}" alt="${escapeHTML(card.title)}" />`;
+  }
+  return card.assetContent;
 }
 
 function buildDashboardPages(

@@ -4,9 +4,13 @@ import { analyzeData } from './analyzer.js';
 import { buildReportModel, type ReportModel } from './report-model.js';
 import {
   generateChartsForReportModel,
-  type ChartPeriodLock,
   type ChartSet,
 } from './charts.js';
+
+export interface ChartPeriodLock {
+  current: string | null;
+  prior: string | null;
+}
 
 export type CanonicalPeriodLocks = Record<string, ChartPeriodLock>;
 
@@ -29,7 +33,7 @@ export function buildCanonicalReportPackage(
       prior: insights[ticker]?.priorPeriod ?? null,
     }]),
   ) as CanonicalPeriodLocks;
-  const charts = generateChartsForReportModel(reportModel);
+  const charts = generateChartsForReportModel(context, reportModel);
   return {
     context,
     insights,

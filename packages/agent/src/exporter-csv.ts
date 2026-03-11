@@ -1,40 +1,28 @@
 /**
- * CSV exporter — writes deterministic metric and ratio data to CSV files.
- *
- * Produces two files per run:
- * 1. {slug}_metrics.csv — one row per metric per period
- * 2. {slug}_ratios.csv — one row per ratio per period
- *
- * For comparison reports, all tickers are combined into the same files.
+ * CSV exporter — writes deterministic filing-backed data to one unified CSV file.
  */
 
-import { writeFile, mkdir } from 'node:fs/promises';
+import { writeFile, mkdir, unlink } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import type { Report, AnalysisContext } from '@dolph/shared';
-import { getMappingByName } from '@dolph/shared';
 import type { ReportModel } from './report-model.js';
+import { buildReportDataRows } from './report-data-rows.js';
+import {
+  generateChartsForReportModel,
+  serializePreparedChartDataset,
+} from './charts.js';
+import type {
+  FactDataRow,
+  MetricDataRow,
+  RatioDataRow,
+} from './report-data-rows.js';
 
 interface CSVExportResult {
-  factsPath: string;
-  metricsPath: string;
-  ratiosPath: string;
+  combinedPath: string;
+  chartDataDir: string;
+  chartPaths: string[];
 }
 
-const RATIO_EXPORT_DEFS: Array<{ key: string; label: string; formula: string }> = [
-  { key: 'gross_margin', label: 'Gross Margin', formula: 'gross_profit / revenue' },
-  { key: 'operating_margin', label: 'Operating Margin', formula: 'operating_income / revenue' },
-  { key: 'net_margin', label: 'Net Margin', formula: 'net_income / revenue' },
-  { key: 'roe', label: 'Return on Equity', formula: 'net_income / equity_basis' },
-  { key: 'roa', label: 'Return on Assets', formula: 'net_income / asset_basis' },
-  { key: 'current_ratio', label: 'Current Ratio', formula: 'current_assets / current_liabilities' },
-  { key: 'quick_ratio', label: 'Quick Ratio', formula: '(current_assets - inventory) / current_liabilities' },
-  { key: 'de', label: 'Debt-to-Equity', formula: 'total_debt / stockholders_equity' },
-  { key: 'asset_turnover', label: 'Asset Turnover', formula: 'revenue / asset_basis' },
-];
-
-/**
- * Export report data as CSV files alongside the report output.
- */
 export async function exportCSV(
   report: Report,
   context: AnalysisContext,
@@ -44,196 +32,244 @@ export async function exportCSV(
   await mkdir(outputDir, { recursive: true });
 
   const slug = report.tickers.join('-');
-  const factsPath = resolve(outputDir, `${slug}_facts.csv`);
-  const metricsPath = resolve(outputDir, `${slug}_metrics.csv`);
-  const ratiosPath = resolve(outputDir, `${slug}_ratios.csv`);
+  const combinedPath = resolve(outputDir, `${slug}_data.csv`);
+  const chartDataDir = resolve(outputDir, `${slug}_chart_data`);
+  const obsoleteVizPath = resolve(outputDir, `${slug}_viz.csv`);
+  const rows = buildReportDataRows(context, reportModel);
+  const chartSet = generateChartsForReportModel(context, reportModel);
 
-  const factsRows: string[][] = [
-    [
-      'ticker',
-      'cik',
-      'company_name',
-      'metric',
-      'reported_label',
-      'reported_description',
-      'reported_value',
-      'reported_unit',
-      'period',
-      'form',
-      'fiscal_year',
-      'fiscal_period',
-      'filed',
-      'xbrl_tag',
-      'namespace',
-      'selection_policy',
-      'concept_scope',
-      'accession',
-      'filing_url',
-    ],
-  ];
+  const combinedRows = [
+    ...rows.facts.map(row => unifyFactRow(report, row)),
+    ...rows.metrics.map(row => unifyMetricRow(report, row)),
+    ...rows.ratios.map(row => unifyRatioRow(report, row)),
+  ].sort(compareUnifiedRows);
 
-  for (const ticker of report.tickers) {
-    const facts = context.facts[ticker];
-    if (!facts) continue;
-    for (const fact of facts.facts) {
-      for (const period of fact.periods) {
-        factsRows.push([
-          facts.ticker,
-          facts.cik,
-          facts.company_name,
-          fact.metric,
-          fact.label || '',
-          fact.description || '',
-          String(period.value),
-          period.unit,
-          period.period,
-          period.form,
-          period.fiscal_year?.toString() || '',
-          period.fiscal_period || '',
-          period.filed,
-          period.provenance?.xbrl_tag || '',
-          period.provenance?.namespace || '',
-          period.provenance?.selection_policy || '',
-          period.provenance?.concept_scope || '',
-          period.provenance?.accession_number || '',
-          period.provenance?.filing_url || '',
-        ]);
-      }
-    }
+  const combinedCsv = rowsToCSV(combinedRows, UNIFIED_HEADERS);
+  await writeFile(combinedPath, combinedCsv, 'utf8');
+  await mkdir(chartDataDir, { recursive: true });
+  const chartPaths: string[] = [];
+  for (const [index, item] of chartSet.items.entries()) {
+    const fileName = `${String(index + 1).padStart(2, '0')}_${sanitizeFileName(item.key)}.csv`;
+    const chartPath = resolve(chartDataDir, fileName);
+    await writeFile(chartPath, serializePreparedChartDataset(item.dataset), 'utf8');
+    chartPaths.push(chartPath);
   }
+  await unlink(obsoleteVizPath).catch(() => {});
 
-  // Build canonical metrics CSV
-  const metricsRows: string[][] = [
-    [
-      'ticker',
-      'period',
-      'metric_key',
-      'metric_label',
-      'resolved_value',
-      'resolved_unit',
-      'source_kind',
-      'reported_or_derived',
-      'reported_value',
-      'reported_unit',
-      'reported_label',
-      'detail',
-      'form',
-      'filed',
-      'accession',
-      'filing_url',
-      'xbrl_tag',
-      'namespace',
-    ],
-  ];
-
-  for (const company of reportModel.companies) {
-    const { ticker } = company;
-    const periods = Array.from(company.canonicalPeriodMap.keys()).sort((a, b) => b.localeCompare(a));
-    for (const period of periods) {
-      const values = company.canonicalPeriodMap.get(period) || {};
-      const sourceBucket = company.sourceMap.get(period) || {};
-
-      for (const [metric, value] of Object.entries(values)) {
-        const source = sourceBucket[metric];
-        const mapping = getMappingByName(metric);
-        metricsRows.push([
-          ticker,
-          period,
-          metric,
-          mapping?.displayName || metric,
-          String(value),
-          mapping?.unit || source?.reportedUnit || '',
-          source?.kind || '',
-          source?.kind === 'derived' || source?.kind === 'adjusted' ? 'derived' : 'reported',
-          source?.reportedValue !== undefined ? String(source.reportedValue) : '',
-          source?.reportedUnit || '',
-          source?.reportedLabel || '',
-          source?.detail || '',
-          source?.form || '',
-          source?.filed || '',
-          source?.provenance?.accession_number || '',
-          source?.provenance?.filing_url || '',
-          source?.provenance?.xbrl_tag || '',
-          source?.provenance?.namespace || '',
-        ]);
-      }
-    }
-  }
-
-  // Build canonical ratio CSV from the sealed report model only
-  const ratiosRows: string[][] = [
-    ['ticker', 'period', 'ratio', 'value', 'formula', 'components', 'notes'],
-  ];
-
-  for (const company of reportModel.companies) {
-    const periods = Array.from(company.canonicalPeriodMap.keys()).sort((a, b) => b.localeCompare(a));
-    for (const period of periods) {
-      for (const def of RATIO_EXPORT_DEFS) {
-        const metric = company.metricsByKey.get(def.key);
-        const value = period === company.snapshotPeriod
-          ? metric?.current ?? null
-          : period === company.priorPeriod
-            ? metric?.prior ?? null
-            : null;
-        if (value === null || value === undefined) continue;
-        ratiosRows.push([
-          company.ticker,
-          period,
-          def.label,
-          String(value),
-          def.formula,
-          ratioComponentsForPeriod(company, period, def.key),
-          metric?.basis?.disclosureText || metric?.note || '',
-        ]);
-      }
-    }
-  }
-
-  await Promise.all([
-    writeFile(factsPath, toCSV(factsRows), 'utf8'),
-    writeFile(metricsPath, toCSV(metricsRows), 'utf8'),
-    writeFile(ratiosPath, toCSV(ratiosRows), 'utf8'),
-  ]);
-
-  return { factsPath, metricsPath, ratiosPath };
+  return { combinedPath, chartDataDir, chartPaths };
 }
 
-function ratioComponentsForPeriod(
-  company: ReportModel['companies'][number],
-  period: string,
-  key: string,
-): string {
-  const values = company.canonicalPeriodMap.get(period) || {};
-  const componentsByKey: Record<string, string[]> = {
-    gross_margin: ['gross_profit', 'revenue'],
-    operating_margin: ['operating_income', 'revenue'],
-    net_margin: ['net_income', 'revenue'],
-    roe: ['net_income', 'stockholders_equity'],
-    roa: ['net_income', 'total_assets'],
-    current_ratio: ['current_assets', 'current_liabilities'],
-    quick_ratio: ['current_assets', 'inventory', 'current_liabilities'],
-    de: ['total_debt', 'stockholders_equity'],
-    asset_turnover: ['revenue', 'total_assets'],
+type UnifiedCsvRow = Record<typeof UNIFIED_HEADERS[number], string | number | boolean | null>;
+
+const UNIFIED_HEADERS = [
+  'dataset_type',
+  'report_type',
+  'request_tickers',
+  'ticker',
+  'company_name',
+  'cik',
+  'period',
+  'period_role',
+  'form',
+  'fiscal_year',
+  'fiscal_period',
+  'filed',
+  'field_key',
+  'field_label',
+  'value',
+  'value_unit',
+  'value_class',
+  'availability_reason',
+  'source_kind',
+  'reported_or_derived',
+  'formula',
+  'components',
+  'notes',
+  'chart_meaningful',
+  'chart_note',
+  'reported_label',
+  'reported_description',
+  'reported_value',
+  'reported_unit',
+  'detail',
+  'xbrl_tag',
+  'namespace',
+  'selection_policy',
+  'concept_scope',
+  'accession',
+  'filing_url',
+] as const;
+
+function unifyFactRow(report: Report, row: FactDataRow): UnifiedCsvRow {
+  return {
+    dataset_type: 'fact',
+    report_type: report.type,
+    request_tickers: report.tickers.join('|'),
+    ticker: row.ticker,
+    company_name: row.company_name,
+    cik: row.cik,
+    period: row.period,
+    period_role: 'historical',
+    form: row.form,
+    fiscal_year: row.fiscal_year,
+    fiscal_period: row.fiscal_period,
+    filed: row.filed,
+    field_key: row.metric,
+    field_label: row.reported_label || row.metric,
+    value: row.reported_value,
+    value_unit: row.reported_unit,
+    value_class: 'reported_fact',
+    availability_reason: 'reported',
+    source_kind: 'reported',
+    reported_or_derived: 'reported',
+    formula: '',
+    components: '',
+    notes: '',
+    chart_meaningful: '',
+    chart_note: '',
+    reported_label: row.reported_label,
+    reported_description: row.reported_description,
+    reported_value: row.reported_value,
+    reported_unit: row.reported_unit,
+    detail: '',
+    xbrl_tag: row.xbrl_tag,
+    namespace: row.namespace,
+    selection_policy: row.selection_policy,
+    concept_scope: row.concept_scope,
+    accession: row.accession,
+    filing_url: row.filing_url,
   };
-  const metricKeys = componentsByKey[key] || [];
-  return metricKeys
-    .filter(metricKey => values[metricKey] !== undefined && Number.isFinite(values[metricKey]))
-    .map(metricKey => `${metricKey}=${values[metricKey]}`)
-    .join(';');
 }
 
-/** Escape and format rows as RFC 4180 CSV. */
-function toCSV(rows: string[][]): string {
-  return rows
-    .map(row =>
-      row
-        .map(cell => {
-          if (cell.includes(',') || cell.includes('"') || cell.includes('\n')) {
-            return `"${cell.replace(/"/g, '""')}"`;
-          }
-          return cell;
-        })
-        .join(','),
-    )
-    .join('\n') + '\n';
+function unifyMetricRow(report: Report, row: MetricDataRow): UnifiedCsvRow {
+  return {
+    dataset_type: 'metric',
+    report_type: report.type,
+    request_tickers: report.tickers.join('|'),
+    ticker: row.ticker,
+    company_name: row.company_name,
+    cik: row.cik,
+    period: row.period,
+    period_role: row.period_role,
+    form: row.form,
+    fiscal_year: '',
+    fiscal_period: '',
+    filed: row.filed,
+    field_key: row.metric_key,
+    field_label: row.metric_label,
+    value: row.resolved_value,
+    value_unit: row.resolved_unit,
+    value_class: 'canonical_metric',
+    availability_reason: row.availability_reason,
+    source_kind: row.source_kind,
+    reported_or_derived: row.reported_or_derived,
+    formula: '',
+    components: '',
+    notes: '',
+    chart_meaningful: '',
+    chart_note: '',
+    reported_label: row.reported_label,
+    reported_description: '',
+    reported_value: row.reported_value,
+    reported_unit: row.reported_unit,
+    detail: row.detail,
+    xbrl_tag: row.xbrl_tag,
+    namespace: row.namespace,
+    selection_policy: '',
+    concept_scope: '',
+    accession: row.accession,
+    filing_url: row.filing_url,
+  };
+}
+
+function unifyRatioRow(report: Report, row: RatioDataRow): UnifiedCsvRow {
+  return {
+    dataset_type: 'ratio',
+    report_type: report.type,
+    request_tickers: report.tickers.join('|'),
+    ticker: row.ticker,
+    company_name: row.company_name,
+    cik: row.cik,
+    period: row.period,
+    period_role: row.period_role,
+    form: '',
+    fiscal_year: '',
+    fiscal_period: '',
+    filed: '',
+    field_key: row.ratio_key,
+    field_label: row.ratio_label,
+    value: row.value,
+    value_unit: 'ratio',
+    value_class: 'canonical_ratio',
+    availability_reason: row.availability_reason,
+    source_kind: '',
+    reported_or_derived: row.value === null ? 'missing' : 'derived',
+    formula: row.formula,
+    components: row.components,
+    notes: row.notes,
+    chart_meaningful: row.chart_meaningful,
+    chart_note: row.chart_note,
+    reported_label: '',
+    reported_description: '',
+    reported_value: '',
+    reported_unit: '',
+    detail: '',
+    xbrl_tag: '',
+    namespace: '',
+    selection_policy: '',
+    concept_scope: '',
+    accession: '',
+    filing_url: '',
+  };
+}
+
+function compareUnifiedRows(left: UnifiedCsvRow, right: UnifiedCsvRow): number {
+  return compareValues(left.ticker, right.ticker)
+    || compareValues(datasetTypeOrder(left.dataset_type), datasetTypeOrder(right.dataset_type))
+    || compareValues(periodRoleOrder(left.period_role), periodRoleOrder(right.period_role))
+    || compareValues(left.period, right.period)
+    || compareValues(left.field_label, right.field_label);
+}
+
+function datasetTypeOrder(value: string | number | boolean | null): number {
+  const order: Record<string, number> = {
+    fact: 0,
+    metric: 1,
+    ratio: 2,
+  };
+  return order[String(value ?? '')] ?? 99;
+}
+
+function periodRoleOrder(value: string | number | boolean | null): number {
+  const order: Record<string, number> = {
+    snapshot: 0,
+    prior: 1,
+    historical: 2,
+  };
+  return order[String(value ?? '')] ?? 99;
+}
+
+function compareValues(left: string | number | boolean | null, right: string | number | boolean | null): number {
+  return String(left ?? '').localeCompare(String(right ?? ''));
+}
+
+function rowsToCSV<T extends object>(rows: T[], headers: readonly string[]): string {
+  const lines = [headers.join(',')];
+  for (const row of rows) {
+    const cells = headers.map(header => formatCell((row as Record<string, unknown>)[header]));
+    lines.push(cells.join(','));
+  }
+  return `${lines.join('\n')}\n`;
+}
+
+function formatCell(value: unknown): string {
+  const text = value === null || value === undefined ? '' : String(value);
+  if (/[",\n]/.test(text)) {
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+  return text;
+}
+
+function sanitizeFileName(value: string): string {
+  return value.replace(/[^a-z0-9._-]/gi, '_');
 }

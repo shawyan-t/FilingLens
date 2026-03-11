@@ -18,6 +18,7 @@ import { runDeterministicQAGates, writeQAFailureReport } from './deterministic-q
 import { writeAuditArtifacts } from './audit-artifacts.js';
 import { requireCanonicalReportPackage, type CanonicalReportPackage } from './canonical-report-package.js';
 import { defaultReportsDir } from './report-paths.js';
+import { renderChartSetWithDatawrapper } from './datawrapper.js';
 
 export async function generatePDF(
   report: Report,
@@ -51,6 +52,7 @@ export async function generatePDF(
   let preRenderQA:
     | ReturnType<typeof runDeterministicQAGates>
     | null = null;
+  let renderedCharts = pkg?.charts;
 
   if (context && pkg) {
     preRenderQA = runDeterministicQAGates(finalReport, context, pkg);
@@ -80,7 +82,11 @@ export async function generatePDF(
     }
 
     const requiredPackage = requireCanonicalReportPackage(pkg, 'generatePDF');
-    const { bodyHTML } = buildPdfPages(finalReport, requiredPackage);
+    renderedCharts = await renderChartSetWithDatawrapper(requiredPackage.charts, finalReport);
+    const { bodyHTML } = buildPdfPages(finalReport, {
+      ...requiredPackage,
+      charts: renderedCharts,
+    });
     const expectedBannerCount = countNonCoverSourcesPages(bodyHTML);
     const slotCount = countToken(bodyHTML, PERIOD_BANNER_SLOT);
     if (slotCount !== expectedBannerCount) {
@@ -170,6 +176,7 @@ export async function generatePDF(
         context,
         insights: pkg.insights,
         reportModel: pkg.reportModel,
+        charts: renderedCharts,
         qa: preRenderQA,
         outputDir: dir,
         pdfPath: outputPath,

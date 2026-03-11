@@ -8,12 +8,15 @@ import type { AnalysisContext } from '@dolph/shared';
 import type { AnalysisInsights } from './analyzer.js';
 import type { DeterministicQAResult } from './deterministic-qa.js';
 import type { ReportModel } from './report-model.js';
+import type { ChartSet } from './charts.js';
+import { serializePreparedChartDataset } from './charts.js';
 
 interface AuditArtifactInput {
   report: Report;
   context: AnalysisContext;
   insights: Record<string, AnalysisInsights>;
   reportModel: ReportModel;
+  charts?: ChartSet | null;
   qa: DeterministicQAResult;
   outputDir: string;
   pdfPath?: string | null;
@@ -98,11 +101,45 @@ export async function writeAuditArtifacts(input: AuditArtifactInput): Promise<Au
     files,
   );
 
+  // 7. Chart rendering diagnostics
+  if (input.charts) {
+    const datasetDir = resolve(artifactDir, 'chart-datasets');
+    await mkdir(datasetDir, { recursive: true });
+    for (const item of input.charts.items) {
+      const datasetFile = `${sanitizeFileName(item.key)}.csv`;
+      const datasetPath = resolve(datasetDir, datasetFile);
+      await writeFile(datasetPath, serializePreparedChartDataset(item.dataset), 'utf8');
+      files[`chart-datasets/${datasetFile}`] = datasetPath;
+    }
+    await writeJson(
+      artifactDir,
+      'chart-rendering.json',
+      input.charts.items.map(item => ({
+        key: item.key,
+        title: item.title,
+        datasetShape: item.dataset.shape,
+        datasetHeaders: item.dataset.headers,
+        datasetPreviewRows: item.dataset.rows.slice(0, 5),
+        renderStatus: item.renderStatus,
+        assetType: item.asset?.assetType || null,
+        mimeType: item.asset?.mimeType || null,
+        fallbackUsed: item.fallbackUsed,
+        datawrapperChartId: item.datawrapperChartId,
+        exportDiagnostics: item.exportDiagnostics,
+      })),
+      files,
+    );
+  }
+
   return {
     directory: artifactDir,
     generated_at: input.report.generated_at,
     files,
   };
+}
+
+function sanitizeFileName(value: string): string {
+  return value.replace(/[^a-z0-9._-]/gi, '_');
 }
 
 async function writeJson(

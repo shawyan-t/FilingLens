@@ -303,39 +303,58 @@ const CSS = `
   .visual-grid {
     display: grid;
     grid-template-columns: 1fr;
-    gap: ${S.lg}px;
+    gap: ${S.md}px;
   }
 
   .visual-card {
     margin: 0;
+    padding-bottom: ${S.sm}px;
+    border-bottom: 1px solid ${C.rule};
+  }
+
+  .visual-card.compact .visual-frame {
+    min-height: 0;
+  }
+
+  .visual-copy {
+    margin: 0 0 ${S.xs}px 0;
+  }
+
+  .visual-copy h3 {
+    margin-bottom: 4px;
+    font-size: 12pt;
+    line-height: 1.25;
+    color: ${C.primaryText};
+  }
+
+  .visual-copy p {
+    margin: 0;
+    font-size: 8.8pt;
+    line-height: 1.45;
+    color: ${C.mutedText};
   }
 
   .visual-frame {
-    border: 1px solid ${C.border};
-    border-radius: 7px;
+    border: none;
+    border-radius: 0;
     background: ${C.page};
-    padding: ${S.sm}px;
-    min-height: 270px;
+    padding: 0;
+    min-height: 220px;
+    overflow: hidden;
   }
 
   .visual-frame svg {
     width: 100%;
     height: auto;
     display: block;
+    margin-bottom: -22px;
   }
 
-  .visual-card figcaption {
-    margin-top: ${S.sm}px;
-  }
-
-  .visual-card h3 {
-    margin-bottom: ${S.xs}px;
-  }
-
-  .visual-card p {
-    margin: 0;
-    font-size: 9.1pt;
-    color: ${C.mutedText};
+  .visual-frame img {
+    width: 100%;
+    height: auto;
+    display: block;
+    margin-bottom: -22px;
   }
 
   .metrics-grid {

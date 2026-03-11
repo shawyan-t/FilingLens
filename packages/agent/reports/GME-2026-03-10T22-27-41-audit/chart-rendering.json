@@ -1,0 +1,793 @@
+[
+  {
+    "key": "revenue_trend",
+    "title": "Revenue Trend",
+    "datasetShape": "timeseries",
+    "datasetHeaders": [
+      "Period",
+      "Revenue"
+    ],
+    "datasetPreviewRows": [
+      [
+        "2021",
+        "5.1"
+      ],
+      [
+        "2022",
+        "6.0"
+      ],
+      [
+        "2023",
+        "5.9"
+      ],
+      [
+        "2024",
+        "5.3"
+      ],
+      [
+        "2025",
+        "3.8"
+      ]
+    ],
+    "renderStatus": "rendered",
+    "assetType": "png",
+    "mimeType": "image/png",
+    "fallbackUsed": true,
+    "datawrapperChartId": "LKfqn",
+    "exportDiagnostics": [
+      {
+        "chartId": "LKfqn",
+        "chartTitle": "Revenue Trend",
+        "stage": "create",
+        "exportFormat": null,
+        "endpoint": "/charts",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "create succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "LKfqn",
+        "chartTitle": "Revenue Trend",
+        "stage": "upload",
+        "exportFormat": null,
+        "endpoint": "/charts/LKfqn/data",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "upload succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "LKfqn",
+        "chartTitle": "Revenue Trend",
+        "stage": "metadata",
+        "exportFormat": null,
+        "endpoint": "/charts/LKfqn",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "metadata succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "LKfqn",
+        "chartTitle": "Revenue Trend",
+        "stage": "publish",
+        "exportFormat": null,
+        "endpoint": "/charts/LKfqn/publish",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "publish succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "LKfqn",
+        "chartTitle": "Revenue Trend",
+        "stage": "export",
+        "exportFormat": "svg",
+        "endpoint": "/charts/LKfqn/export/svg?plain=true&unit=px&width=1040&height=290",
+        "httpStatus": 401,
+        "ok": false,
+        "message": "{\"statusCode\":401,\"error\":\"Unauthorized\",\"message\":\"Unauthorized\"}",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "failed"
+      },
+      {
+        "chartId": "LKfqn",
+        "chartTitle": "Revenue Trend",
+        "stage": "export",
+        "exportFormat": "png",
+        "endpoint": "/charts/LKfqn/export/png?plain=true&unit=px&width=1040&height=290",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "PNG export succeeded.",
+        "fallbackTriggered": true,
+        "finalAssetType": "png",
+        "finalRenderResult": "rendered"
+      }
+    ]
+  },
+  {
+    "key": "margin_trend",
+    "title": "Margin Trend",
+    "datasetShape": "timeseries",
+    "datasetHeaders": [
+      "Period",
+      "Gross Margin",
+      "Operating Margin",
+      "Net Margin"
+    ],
+    "datasetPreviewRows": [
+      [
+        "2021",
+        "24.745569570513577",
+        "-4.6720892765924",
+        "-4.230028684820621"
+      ],
+      [
+        "2022",
+        "22.42334503468814",
+        "-6.130733525213369",
+        "-6.343687091353753"
+      ],
+      [
+        "2023",
+        "23.149210419759754",
+        "-5.257119719260359",
+        "-5.2824267782426775"
+      ],
+      [
+        "2024",
+        "24.54483386436049",
+        "-0.6543013199817933",
+        "0.12706721286602943"
+      ],
+      [
+        "2025",
+        "29.136803557415643",
+        "-0.6853256604760659",
+        "3.4344755427674603"
+      ]
+    ],
+    "renderStatus": "rendered",
+    "assetType": "png",
+    "mimeType": "image/png",
+    "fallbackUsed": true,
+    "datawrapperChartId": "dYOCu",
+    "exportDiagnostics": [
+      {
+        "chartId": "dYOCu",
+        "chartTitle": "Margin Trend",
+        "stage": "create",
+        "exportFormat": null,
+        "endpoint": "/charts",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "create succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "dYOCu",
+        "chartTitle": "Margin Trend",
+        "stage": "upload",
+        "exportFormat": null,
+        "endpoint": "/charts/dYOCu/data",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "upload succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "dYOCu",
+        "chartTitle": "Margin Trend",
+        "stage": "metadata",
+        "exportFormat": null,
+        "endpoint": "/charts/dYOCu",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "metadata succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "dYOCu",
+        "chartTitle": "Margin Trend",
+        "stage": "publish",
+        "exportFormat": null,
+        "endpoint": "/charts/dYOCu/publish",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "publish succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "dYOCu",
+        "chartTitle": "Margin Trend",
+        "stage": "export",
+        "exportFormat": "svg",
+        "endpoint": "/charts/dYOCu/export/svg?plain=true&unit=px&width=1040&height=290",
+        "httpStatus": 401,
+        "ok": false,
+        "message": "{\"statusCode\":401,\"error\":\"Unauthorized\",\"message\":\"Unauthorized\"}",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "failed"
+      },
+      {
+        "chartId": "dYOCu",
+        "chartTitle": "Margin Trend",
+        "stage": "export",
+        "exportFormat": "png",
+        "endpoint": "/charts/dYOCu/export/png?plain=true&unit=px&width=1040&height=290",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "PNG export succeeded.",
+        "fallbackTriggered": true,
+        "finalAssetType": "png",
+        "finalRenderResult": "rendered"
+      }
+    ]
+  },
+  {
+    "key": "cash_flow_profile",
+    "title": "Cash Flow Profile",
+    "datasetShape": "categorical",
+    "datasetHeaders": [
+      "Metric",
+      "Value"
+    ],
+    "datasetPreviewRows": [
+      [
+        "Net Income",
+        "131"
+      ],
+      [
+        "Operating Cash Flow",
+        "146"
+      ],
+      [
+        "Capital Expenditures",
+        "-16"
+      ],
+      [
+        "Free Cash Flow",
+        "130"
+      ]
+    ],
+    "renderStatus": "rendered",
+    "assetType": "png",
+    "mimeType": "image/png",
+    "fallbackUsed": true,
+    "datawrapperChartId": "6gQYu",
+    "exportDiagnostics": [
+      {
+        "chartId": "6gQYu",
+        "chartTitle": "Cash Flow Profile",
+        "stage": "create",
+        "exportFormat": null,
+        "endpoint": "/charts",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "create succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "6gQYu",
+        "chartTitle": "Cash Flow Profile",
+        "stage": "upload",
+        "exportFormat": null,
+        "endpoint": "/charts/6gQYu/data",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "upload succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "6gQYu",
+        "chartTitle": "Cash Flow Profile",
+        "stage": "metadata",
+        "exportFormat": null,
+        "endpoint": "/charts/6gQYu",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "metadata succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "6gQYu",
+        "chartTitle": "Cash Flow Profile",
+        "stage": "publish",
+        "exportFormat": null,
+        "endpoint": "/charts/6gQYu/publish",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "publish succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "6gQYu",
+        "chartTitle": "Cash Flow Profile",
+        "stage": "export",
+        "exportFormat": "svg",
+        "endpoint": "/charts/6gQYu/export/svg?plain=true&unit=px&width=960&height=250",
+        "httpStatus": 401,
+        "ok": false,
+        "message": "{\"statusCode\":401,\"error\":\"Unauthorized\",\"message\":\"Unauthorized\"}",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "failed"
+      },
+      {
+        "chartId": "6gQYu",
+        "chartTitle": "Cash Flow Profile",
+        "stage": "export",
+        "exportFormat": "png",
+        "endpoint": "/charts/6gQYu/export/png?plain=true&unit=px&width=960&height=250",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "PNG export succeeded.",
+        "fallbackTriggered": true,
+        "finalAssetType": "png",
+        "finalRenderResult": "rendered"
+      }
+    ]
+  },
+  {
+    "key": "balance_sheet_posture",
+    "title": "Balance Sheet Posture",
+    "datasetShape": "categorical",
+    "datasetHeaders": [
+      "Metric",
+      "Value"
+    ],
+    "datasetPreviewRows": [
+      [
+        "Total Assets",
+        "5.9"
+      ],
+      [
+        "Total Liabilities",
+        "0.9"
+      ],
+      [
+        "Stockholders' Equity",
+        "4.9"
+      ],
+      [
+        "Total Debt",
+        "0.0"
+      ],
+      [
+        "Cash & Equivalents",
+        "4.8"
+      ]
+    ],
+    "renderStatus": "rendered",
+    "assetType": "png",
+    "mimeType": "image/png",
+    "fallbackUsed": true,
+    "datawrapperChartId": "mG6BF",
+    "exportDiagnostics": [
+      {
+        "chartId": "mG6BF",
+        "chartTitle": "Balance Sheet Posture",
+        "stage": "create",
+        "exportFormat": null,
+        "endpoint": "/charts",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "create succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "mG6BF",
+        "chartTitle": "Balance Sheet Posture",
+        "stage": "upload",
+        "exportFormat": null,
+        "endpoint": "/charts/mG6BF/data",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "upload succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "mG6BF",
+        "chartTitle": "Balance Sheet Posture",
+        "stage": "metadata",
+        "exportFormat": null,
+        "endpoint": "/charts/mG6BF",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "metadata succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "mG6BF",
+        "chartTitle": "Balance Sheet Posture",
+        "stage": "publish",
+        "exportFormat": null,
+        "endpoint": "/charts/mG6BF/publish",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "publish succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "mG6BF",
+        "chartTitle": "Balance Sheet Posture",
+        "stage": "export",
+        "exportFormat": "svg",
+        "endpoint": "/charts/mG6BF/export/svg?plain=true&unit=px&width=960&height=260",
+        "httpStatus": 401,
+        "ok": false,
+        "message": "{\"statusCode\":401,\"error\":\"Unauthorized\",\"message\":\"Unauthorized\"}",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "failed"
+      },
+      {
+        "chartId": "mG6BF",
+        "chartTitle": "Balance Sheet Posture",
+        "stage": "export",
+        "exportFormat": "png",
+        "endpoint": "/charts/mG6BF/export/png?plain=true&unit=px&width=960&height=260",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "PNG export succeeded.",
+        "fallbackTriggered": true,
+        "finalAssetType": "png",
+        "finalRenderResult": "rendered"
+      }
+    ]
+  },
+  {
+    "key": "liquidity_leverage",
+    "title": "Liquidity and Leverage",
+    "datasetShape": "categorical",
+    "datasetHeaders": [
+      "Ratio",
+      "Value"
+    ],
+    "datasetPreviewRows": [
+      [
+        "Current Ratio",
+        "8.047790802524798"
+      ],
+      [
+        "Quick Ratio",
+        "7.326119627291854"
+      ],
+      [
+        "Debt-to-Equity",
+        "0.005517465211570449"
+      ]
+    ],
+    "renderStatus": "rendered",
+    "assetType": "png",
+    "mimeType": "image/png",
+    "fallbackUsed": true,
+    "datawrapperChartId": "ajn2G",
+    "exportDiagnostics": [
+      {
+        "chartId": "ajn2G",
+        "chartTitle": "Liquidity and Leverage",
+        "stage": "create",
+        "exportFormat": null,
+        "endpoint": "/charts",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "create succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "ajn2G",
+        "chartTitle": "Liquidity and Leverage",
+        "stage": "upload",
+        "exportFormat": null,
+        "endpoint": "/charts/ajn2G/data",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "upload succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "ajn2G",
+        "chartTitle": "Liquidity and Leverage",
+        "stage": "metadata",
+        "exportFormat": null,
+        "endpoint": "/charts/ajn2G",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "metadata succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "ajn2G",
+        "chartTitle": "Liquidity and Leverage",
+        "stage": "publish",
+        "exportFormat": null,
+        "endpoint": "/charts/ajn2G/publish",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "publish succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "ajn2G",
+        "chartTitle": "Liquidity and Leverage",
+        "stage": "export",
+        "exportFormat": "svg",
+        "endpoint": "/charts/ajn2G/export/svg?plain=true&unit=px&width=900&height=220",
+        "httpStatus": 401,
+        "ok": false,
+        "message": "{\"statusCode\":401,\"error\":\"Unauthorized\",\"message\":\"Unauthorized\"}",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "failed"
+      },
+      {
+        "chartId": "ajn2G",
+        "chartTitle": "Liquidity and Leverage",
+        "stage": "export",
+        "exportFormat": "png",
+        "endpoint": "/charts/ajn2G/export/png?plain=true&unit=px&width=900&height=220",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "PNG export succeeded.",
+        "fallbackTriggered": true,
+        "finalAssetType": "png",
+        "finalRenderResult": "rendered"
+      }
+    ]
+  },
+  {
+    "key": "return_profile",
+    "title": "Return Profile",
+    "datasetShape": "categorical",
+    "datasetHeaders": [
+      "Metric",
+      "Value"
+    ],
+    "datasetPreviewRows": [
+      [
+        "Return on Equity",
+        "4.189266798545083"
+      ],
+      [
+        "Return on Assets",
+        "3.0590373235170776"
+      ]
+    ],
+    "renderStatus": "rendered",
+    "assetType": "png",
+    "mimeType": "image/png",
+    "fallbackUsed": true,
+    "datawrapperChartId": "AHHoT",
+    "exportDiagnostics": [
+      {
+        "chartId": "AHHoT",
+        "chartTitle": "Return Profile",
+        "stage": "create",
+        "exportFormat": null,
+        "endpoint": "/charts",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "create succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "AHHoT",
+        "chartTitle": "Return Profile",
+        "stage": "upload",
+        "exportFormat": null,
+        "endpoint": "/charts/AHHoT/data",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "upload succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "AHHoT",
+        "chartTitle": "Return Profile",
+        "stage": "metadata",
+        "exportFormat": null,
+        "endpoint": "/charts/AHHoT",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "metadata succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "AHHoT",
+        "chartTitle": "Return Profile",
+        "stage": "publish",
+        "exportFormat": null,
+        "endpoint": "/charts/AHHoT/publish",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "publish succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "AHHoT",
+        "chartTitle": "Return Profile",
+        "stage": "export",
+        "exportFormat": "svg",
+        "endpoint": "/charts/AHHoT/export/svg?plain=true&unit=px&width=900&height=220",
+        "httpStatus": 401,
+        "ok": false,
+        "message": "{\"statusCode\":401,\"error\":\"Unauthorized\",\"message\":\"Unauthorized\"}",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "failed"
+      },
+      {
+        "chartId": "AHHoT",
+        "chartTitle": "Return Profile",
+        "stage": "export",
+        "exportFormat": "png",
+        "endpoint": "/charts/AHHoT/export/png?plain=true&unit=px&width=900&height=220",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "PNG export succeeded.",
+        "fallbackTriggered": true,
+        "finalAssetType": "png",
+        "finalRenderResult": "rendered"
+      }
+    ]
+  },
+  {
+    "key": "per_share_metrics",
+    "title": "Per-Share Metrics",
+    "datasetShape": "timeseries",
+    "datasetHeaders": [
+      "Period",
+      "Diluted EPS",
+      "Book Value Per Share"
+    ],
+    "datasetPreviewRows": [
+      [
+        "2024",
+        "0.02",
+        "4.378802747791953"
+      ],
+      [
+        "2025",
+        "0.33",
+        "11.028635346756152"
+      ]
+    ],
+    "renderStatus": "rendered",
+    "assetType": "png",
+    "mimeType": "image/png",
+    "fallbackUsed": true,
+    "datawrapperChartId": "9y1V9",
+    "exportDiagnostics": [
+      {
+        "chartId": "9y1V9",
+        "chartTitle": "Per-Share Metrics",
+        "stage": "create",
+        "exportFormat": null,
+        "endpoint": "/charts",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "create succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "9y1V9",
+        "chartTitle": "Per-Share Metrics",
+        "stage": "upload",
+        "exportFormat": null,
+        "endpoint": "/charts/9y1V9/data",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "upload succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "9y1V9",
+        "chartTitle": "Per-Share Metrics",
+        "stage": "metadata",
+        "exportFormat": null,
+        "endpoint": "/charts/9y1V9",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "metadata succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "9y1V9",
+        "chartTitle": "Per-Share Metrics",
+        "stage": "publish",
+        "exportFormat": null,
+        "endpoint": "/charts/9y1V9/publish",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "publish succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "9y1V9",
+        "chartTitle": "Per-Share Metrics",
+        "stage": "export",
+        "exportFormat": "svg",
+        "endpoint": "/charts/9y1V9/export/svg?plain=true&unit=px&width=960&height=230",
+        "httpStatus": 401,
+        "ok": false,
+        "message": "{\"statusCode\":401,\"error\":\"Unauthorized\",\"message\":\"Unauthorized\"}",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "failed"
+      },
+      {
+        "chartId": "9y1V9",
+        "chartTitle": "Per-Share Metrics",
+        "stage": "export",
+        "exportFormat": "png",
+        "endpoint": "/charts/9y1V9/export/png?plain=true&unit=px&width=960&height=230",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "PNG export succeeded.",
+        "fallbackTriggered": true,
+        "finalAssetType": "png",
+        "finalRenderResult": "rendered"
+      }
+    ]
+  }
+]
