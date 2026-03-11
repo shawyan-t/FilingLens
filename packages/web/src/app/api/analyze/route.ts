@@ -1,11 +1,9 @@
 import { NextRequest } from 'next/server';
-import { readFile } from 'node:fs/promises';
 import { basename } from 'node:path';
-import { resolve } from 'node:path';
-import { homedir } from 'node:os';
 import { z } from 'zod';
 import { loadAnalysisRecord, saveAnalysisRecord } from '@/lib/history-store';
 import { registerArtifact } from '@/lib/artifact-store';
+import { loadDolphEnv } from '@/lib/dolph-env';
 import type { Report } from '@dolph/shared';
 import type { CanonicalReportPackage } from '@dolph/agent/dist/canonical-report-package.js';
 import type { AnalysisContext } from '@dolph/shared';
@@ -62,32 +60,6 @@ async function getResolverModule() {
 
 async function getDatawrapperModule() {
   return import('@dolph/agent/dist/datawrapper.js');
-}
-
-async function loadDolphEnv() {
-  await applyEnvFile(resolve(process.cwd(), '.env'), false);
-  await applyEnvFile(resolve(homedir(), '.dolph/.env'), true);
-}
-
-async function applyEnvFile(filePath: string, override: boolean) {
-  try {
-    const raw = await readFile(filePath, 'utf8');
-    for (const line of raw.split(/\r?\n/)) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#')) continue;
-      const idx = trimmed.indexOf('=');
-      if (idx === -1) continue;
-      const key = trimmed.slice(0, idx).trim();
-      let value = trimmed.slice(idx + 1).trim();
-      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-        value = value.slice(1, -1);
-      }
-      if (!override && process.env[key] !== undefined) continue;
-      process.env[key] = value;
-    }
-  } catch {
-    // Missing env file is fine.
-  }
 }
 
 const AnalyzeRequestSchema = z.object({

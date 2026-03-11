@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { resolveTickerWithConfidence } from '@dolph/mcp-sec-server/resolver';
+import { loadDolphEnv } from '@/lib/dolph-env';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -10,6 +11,7 @@ const ResolveRequestSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  await loadDolphEnv();
   let body: unknown;
   try {
     body = await request.json();

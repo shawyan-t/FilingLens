@@ -90,15 +90,15 @@ export function ReportView({ sections, tickers, generatedAt }: ReportViewProps) 
   return (
     <div className="report-content">
       {/* Report Header */}
-      <div className="mb-8 pb-4 border-b border-[#262626]">
-        <h1 className="text-2xl font-bold text-white mb-1">
+      <div className="mb-8 rounded-[24px] border border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.10),rgba(255,255,255,0.03))] px-6 py-5 shadow-[0_20px_48px_rgba(15,23,42,0.10),inset_0_1px_0_rgba(255,255,255,0.14)]">
+        <h1 className="mb-1 text-2xl font-bold text-foreground">
           {tickers.length === 1
             ? `${tickers[0]} Financial Analysis`
             : `${tickers.join(" vs ")} Comparison`
           }
         </h1>
         {generatedAt && (
-          <p className="text-sm text-neutral-500">
+          <p className="text-sm text-muted-foreground">
             Generated {new Date(generatedAt).toLocaleString()}
           </p>
         )}
@@ -106,7 +106,7 @@ export function ReportView({ sections, tickers, generatedAt }: ReportViewProps) 
 
       {/* Report Sections */}
       {sections.map((section) => (
-        <div key={section.id} className="mb-6" id={section.id}>
+        <div key={section.id} className="mb-6 rounded-[24px] border border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.09),rgba(255,255,255,0.02))] px-6 py-5 shadow-[0_18px_42px_rgba(15,23,42,0.08),inset_0_1px_0_rgba(255,255,255,0.12)]" id={section.id}>
           {parseMarkdownWithTables(`## ${section.title}\n\n${section.content}`).map((block, idx) => {
             if (block.type === "markdown") {
               return (
@@ -117,14 +117,14 @@ export function ReportView({ sections, tickers, generatedAt }: ReportViewProps) 
             }
 
             return (
-              <div key={`${section.id}-tbl-${idx}`} className="my-4 overflow-x-auto">
-                <table className="w-full text-sm border border-[#2f2f2f] border-collapse">
+              <div key={`${section.id}-tbl-${idx}`} className="report-table-wrap my-4 overflow-x-auto">
+                <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-[#1b1b1b]">
+                    <tr>
                       {block.table.headers.map((header, hIdx) => (
                         <th
                           key={`${section.id}-h-${idx}-${hIdx}`}
-                          className="px-3 py-2 border border-[#2f2f2f] text-left font-semibold text-neutral-200"
+                          className="text-left font-semibold"
                         >
                           {header}
                         </th>
@@ -133,11 +133,11 @@ export function ReportView({ sections, tickers, generatedAt }: ReportViewProps) 
                   </thead>
                   <tbody>
                     {block.table.rows.map((row, rIdx) => (
-                      <tr key={`${section.id}-r-${idx}-${rIdx}`} className={rIdx % 2 === 0 ? "bg-[#101010]" : "bg-[#151515]"}>
+                      <tr key={`${section.id}-r-${idx}-${rIdx}`}>
                         {row.map((cell, cIdx) => (
                           <td
                             key={`${section.id}-c-${idx}-${rIdx}-${cIdx}`}
-                            className="px-3 py-2 border border-[#2f2f2f] text-neutral-300"
+                            className=""
                           >
                             {cell}
                           </td>

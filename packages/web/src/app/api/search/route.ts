@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { searchFilings } from '@dolph/mcp-sec-server/tools/search-filings.js';
+import { loadDolphEnv } from '@/lib/dolph-env';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -22,6 +23,7 @@ function buildDateRange(dateRange: 'last_year' | 'last_3_years' | 'all_time') {
 }
 
 export async function POST(request: NextRequest) {
+  await loadDolphEnv();
   let body: unknown;
   try {
     body = await request.json();
@@ -34,7 +36,7 @@ export async function POST(request: NextRequest) {
 
   const parsed = SearchRequestSchema.safeParse(body);
   if (!parsed.success) {
-    return new Response(JSON.stringify({ error: 'Invalid request', details: parsed.error.issues.map(issue => issue.message) }), {
+    return new Response(JSON.stringify({ error: 'Invalid request', details: parsed.error.issues.map((issue) => issue.message) }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
     });
@@ -46,7 +48,7 @@ export async function POST(request: NextRequest) {
       query: parsed.data.query,
       ticker: parsed.data.ticker || undefined,
       ...range,
-      limit: 8,
+      limit: 15,
     });
 
     return Response.json({ results });

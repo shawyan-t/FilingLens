@@ -1,0 +1,793 @@
+[
+  {
+    "key": "revenue_trend",
+    "title": "NVIDIA CORP Revenue Trend",
+    "datasetShape": "timeseries",
+    "datasetHeaders": [
+      "Period",
+      "Revenue"
+    ],
+    "datasetPreviewRows": [
+      [
+        "2022",
+        "26914000000"
+      ],
+      [
+        "2023",
+        "26974000000"
+      ],
+      [
+        "2024",
+        "60922000000"
+      ],
+      [
+        "2025",
+        "130497000000"
+      ],
+      [
+        "2026",
+        "215938000000"
+      ]
+    ],
+    "renderStatus": "rendered",
+    "assetType": "png",
+    "mimeType": "image/png",
+    "fallbackUsed": true,
+    "datawrapperChartId": "WECRx",
+    "exportDiagnostics": [
+      {
+        "chartId": "WECRx",
+        "chartTitle": "NVIDIA CORP Revenue Trend",
+        "stage": "create",
+        "exportFormat": null,
+        "endpoint": "/charts",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "create succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "WECRx",
+        "chartTitle": "NVIDIA CORP Revenue Trend",
+        "stage": "upload",
+        "exportFormat": null,
+        "endpoint": "/charts/WECRx/data",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "upload succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "WECRx",
+        "chartTitle": "NVIDIA CORP Revenue Trend",
+        "stage": "metadata",
+        "exportFormat": null,
+        "endpoint": "/charts/WECRx",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "metadata succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "WECRx",
+        "chartTitle": "NVIDIA CORP Revenue Trend",
+        "stage": "publish",
+        "exportFormat": null,
+        "endpoint": "/charts/WECRx/publish",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "publish succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "WECRx",
+        "chartTitle": "NVIDIA CORP Revenue Trend",
+        "stage": "export",
+        "exportFormat": "svg",
+        "endpoint": "/charts/WECRx/export/svg?plain=true&unit=px&width=1040&height=300",
+        "httpStatus": 401,
+        "ok": false,
+        "message": "{\"statusCode\":401,\"error\":\"Unauthorized\",\"message\":\"Unauthorized\"}",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "failed"
+      },
+      {
+        "chartId": "WECRx",
+        "chartTitle": "NVIDIA CORP Revenue Trend",
+        "stage": "export",
+        "exportFormat": "png",
+        "endpoint": "/charts/WECRx/export/png?plain=true&unit=px&width=1040&height=300",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "PNG export succeeded.",
+        "fallbackTriggered": true,
+        "finalAssetType": "png",
+        "finalRenderResult": "rendered"
+      }
+    ]
+  },
+  {
+    "key": "margin_trend",
+    "title": "NVIDIA CORP Margin Trend",
+    "datasetShape": "timeseries",
+    "datasetHeaders": [
+      "Period",
+      "Gross Margin",
+      "Operating Margin",
+      "Net Margin"
+    ],
+    "datasetPreviewRows": [
+      [
+        "2022",
+        "64.92903321691314",
+        "37.307720888756776",
+        "36.23393029649996"
+      ],
+      [
+        "2023",
+        "56.928894490991325",
+        "15.65952398606065",
+        "16.193371394676355"
+      ],
+      [
+        "2024",
+        "72.71757329043696",
+        "54.121663766783755",
+        "48.84934834706674"
+      ],
+      [
+        "2025",
+        "74.98869705816992",
+        "62.417526839697466",
+        "55.848027157712444"
+      ],
+      [
+        "2026",
+        "71.06808435754708",
+        "60.38168363141272",
+        "55.60253406070261"
+      ]
+    ],
+    "renderStatus": "rendered",
+    "assetType": "png",
+    "mimeType": "image/png",
+    "fallbackUsed": true,
+    "datawrapperChartId": "njS4e",
+    "exportDiagnostics": [
+      {
+        "chartId": "njS4e",
+        "chartTitle": "NVIDIA CORP Margin Trend",
+        "stage": "create",
+        "exportFormat": null,
+        "endpoint": "/charts",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "create succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "njS4e",
+        "chartTitle": "NVIDIA CORP Margin Trend",
+        "stage": "upload",
+        "exportFormat": null,
+        "endpoint": "/charts/njS4e/data",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "upload succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "njS4e",
+        "chartTitle": "NVIDIA CORP Margin Trend",
+        "stage": "metadata",
+        "exportFormat": null,
+        "endpoint": "/charts/njS4e",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "metadata succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "njS4e",
+        "chartTitle": "NVIDIA CORP Margin Trend",
+        "stage": "publish",
+        "exportFormat": null,
+        "endpoint": "/charts/njS4e/publish",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "publish succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "njS4e",
+        "chartTitle": "NVIDIA CORP Margin Trend",
+        "stage": "export",
+        "exportFormat": "svg",
+        "endpoint": "/charts/njS4e/export/svg?plain=true&unit=px&width=1040&height=300",
+        "httpStatus": 401,
+        "ok": false,
+        "message": "{\"statusCode\":401,\"error\":\"Unauthorized\",\"message\":\"Unauthorized\"}",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "failed"
+      },
+      {
+        "chartId": "njS4e",
+        "chartTitle": "NVIDIA CORP Margin Trend",
+        "stage": "export",
+        "exportFormat": "png",
+        "endpoint": "/charts/njS4e/export/png?plain=true&unit=px&width=1040&height=300",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "PNG export succeeded.",
+        "fallbackTriggered": true,
+        "finalAssetType": "png",
+        "finalRenderResult": "rendered"
+      }
+    ]
+  },
+  {
+    "key": "cash_flow_profile",
+    "title": "NVIDIA CORP Cash Flow Profile",
+    "datasetShape": "categorical",
+    "datasetHeaders": [
+      "Metric",
+      "Value"
+    ],
+    "datasetPreviewRows": [
+      [
+        "Net Income",
+        "120067000000"
+      ],
+      [
+        "Operating Cash Flow",
+        "102718000000"
+      ],
+      [
+        "Capital Expenditures",
+        "-6042000000"
+      ],
+      [
+        "Free Cash Flow",
+        "96676000000"
+      ]
+    ],
+    "renderStatus": "rendered",
+    "assetType": "png",
+    "mimeType": "image/png",
+    "fallbackUsed": true,
+    "datawrapperChartId": "FXVlD",
+    "exportDiagnostics": [
+      {
+        "chartId": "FXVlD",
+        "chartTitle": "NVIDIA CORP Cash Flow Profile",
+        "stage": "create",
+        "exportFormat": null,
+        "endpoint": "/charts",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "create succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "FXVlD",
+        "chartTitle": "NVIDIA CORP Cash Flow Profile",
+        "stage": "upload",
+        "exportFormat": null,
+        "endpoint": "/charts/FXVlD/data",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "upload succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "FXVlD",
+        "chartTitle": "NVIDIA CORP Cash Flow Profile",
+        "stage": "metadata",
+        "exportFormat": null,
+        "endpoint": "/charts/FXVlD",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "metadata succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "FXVlD",
+        "chartTitle": "NVIDIA CORP Cash Flow Profile",
+        "stage": "publish",
+        "exportFormat": null,
+        "endpoint": "/charts/FXVlD/publish",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "publish succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "FXVlD",
+        "chartTitle": "NVIDIA CORP Cash Flow Profile",
+        "stage": "export",
+        "exportFormat": "svg",
+        "endpoint": "/charts/FXVlD/export/svg?plain=true&unit=px&width=960&height=300",
+        "httpStatus": 401,
+        "ok": false,
+        "message": "{\"statusCode\":401,\"error\":\"Unauthorized\",\"message\":\"Unauthorized\"}",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "failed"
+      },
+      {
+        "chartId": "FXVlD",
+        "chartTitle": "NVIDIA CORP Cash Flow Profile",
+        "stage": "export",
+        "exportFormat": "png",
+        "endpoint": "/charts/FXVlD/export/png?plain=true&unit=px&width=960&height=300",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "PNG export succeeded.",
+        "fallbackTriggered": true,
+        "finalAssetType": "png",
+        "finalRenderResult": "rendered"
+      }
+    ]
+  },
+  {
+    "key": "balance_sheet_posture",
+    "title": "NVIDIA CORP Balance Sheet Posture",
+    "datasetShape": "categorical",
+    "datasetHeaders": [
+      "Metric",
+      "Value"
+    ],
+    "datasetPreviewRows": [
+      [
+        "Total Assets",
+        "206803000000"
+      ],
+      [
+        "Total Liabilities",
+        "49510000000"
+      ],
+      [
+        "Total Stockholders' Equity",
+        "157293000000"
+      ],
+      [
+        "Total Debt",
+        "9467000000"
+      ],
+      [
+        "Cash & Equivalents",
+        "10605000000"
+      ]
+    ],
+    "renderStatus": "rendered",
+    "assetType": "png",
+    "mimeType": "image/png",
+    "fallbackUsed": true,
+    "datawrapperChartId": "oGrnN",
+    "exportDiagnostics": [
+      {
+        "chartId": "oGrnN",
+        "chartTitle": "NVIDIA CORP Balance Sheet Posture",
+        "stage": "create",
+        "exportFormat": null,
+        "endpoint": "/charts",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "create succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "oGrnN",
+        "chartTitle": "NVIDIA CORP Balance Sheet Posture",
+        "stage": "upload",
+        "exportFormat": null,
+        "endpoint": "/charts/oGrnN/data",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "upload succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "oGrnN",
+        "chartTitle": "NVIDIA CORP Balance Sheet Posture",
+        "stage": "metadata",
+        "exportFormat": null,
+        "endpoint": "/charts/oGrnN",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "metadata succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "oGrnN",
+        "chartTitle": "NVIDIA CORP Balance Sheet Posture",
+        "stage": "publish",
+        "exportFormat": null,
+        "endpoint": "/charts/oGrnN/publish",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "publish succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "oGrnN",
+        "chartTitle": "NVIDIA CORP Balance Sheet Posture",
+        "stage": "export",
+        "exportFormat": "svg",
+        "endpoint": "/charts/oGrnN/export/svg?plain=true&unit=px&width=960&height=260",
+        "httpStatus": 401,
+        "ok": false,
+        "message": "{\"statusCode\":401,\"error\":\"Unauthorized\",\"message\":\"Unauthorized\"}",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "failed"
+      },
+      {
+        "chartId": "oGrnN",
+        "chartTitle": "NVIDIA CORP Balance Sheet Posture",
+        "stage": "export",
+        "exportFormat": "png",
+        "endpoint": "/charts/oGrnN/export/png?plain=true&unit=px&width=960&height=260",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "PNG export succeeded.",
+        "fallbackTriggered": true,
+        "finalAssetType": "png",
+        "finalRenderResult": "rendered"
+      }
+    ]
+  },
+  {
+    "key": "liquidity_leverage",
+    "title": "NVIDIA CORP Liquidity Profile",
+    "datasetShape": "categorical",
+    "datasetHeaders": [
+      "Ratio",
+      "Value"
+    ],
+    "datasetPreviewRows": [
+      [
+        "Current Ratio",
+        "3.905263812455306"
+      ],
+      [
+        "Quick Ratio",
+        "3.239809719242608"
+      ],
+      [
+        "Debt-to-Equity",
+        "0.06018703947410247"
+      ]
+    ],
+    "renderStatus": "rendered",
+    "assetType": "png",
+    "mimeType": "image/png",
+    "fallbackUsed": true,
+    "datawrapperChartId": "5HfT0",
+    "exportDiagnostics": [
+      {
+        "chartId": "5HfT0",
+        "chartTitle": "NVIDIA CORP Liquidity Profile",
+        "stage": "create",
+        "exportFormat": null,
+        "endpoint": "/charts",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "create succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "5HfT0",
+        "chartTitle": "NVIDIA CORP Liquidity Profile",
+        "stage": "upload",
+        "exportFormat": null,
+        "endpoint": "/charts/5HfT0/data",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "upload succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "5HfT0",
+        "chartTitle": "NVIDIA CORP Liquidity Profile",
+        "stage": "metadata",
+        "exportFormat": null,
+        "endpoint": "/charts/5HfT0",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "metadata succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "5HfT0",
+        "chartTitle": "NVIDIA CORP Liquidity Profile",
+        "stage": "publish",
+        "exportFormat": null,
+        "endpoint": "/charts/5HfT0/publish",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "publish succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "5HfT0",
+        "chartTitle": "NVIDIA CORP Liquidity Profile",
+        "stage": "export",
+        "exportFormat": "svg",
+        "endpoint": "/charts/5HfT0/export/svg?plain=true&unit=px&width=900&height=220",
+        "httpStatus": 401,
+        "ok": false,
+        "message": "{\"statusCode\":401,\"error\":\"Unauthorized\",\"message\":\"Unauthorized\"}",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "failed"
+      },
+      {
+        "chartId": "5HfT0",
+        "chartTitle": "NVIDIA CORP Liquidity Profile",
+        "stage": "export",
+        "exportFormat": "png",
+        "endpoint": "/charts/5HfT0/export/png?plain=true&unit=px&width=900&height=220",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "PNG export succeeded.",
+        "fallbackTriggered": true,
+        "finalAssetType": "png",
+        "finalRenderResult": "rendered"
+      }
+    ]
+  },
+  {
+    "key": "return_profile",
+    "title": "NVIDIA CORP Profitability Profile",
+    "datasetShape": "categorical",
+    "datasetHeaders": [
+      "Metric",
+      "Value"
+    ],
+    "datasetPreviewRows": [
+      [
+        "Return on Equity",
+        "101.4850815653791"
+      ],
+      [
+        "Return on Assets",
+        "75.41802238665343"
+      ]
+    ],
+    "renderStatus": "rendered",
+    "assetType": "png",
+    "mimeType": "image/png",
+    "fallbackUsed": true,
+    "datawrapperChartId": "cUxpx",
+    "exportDiagnostics": [
+      {
+        "chartId": "cUxpx",
+        "chartTitle": "NVIDIA CORP Profitability Profile",
+        "stage": "create",
+        "exportFormat": null,
+        "endpoint": "/charts",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "create succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "cUxpx",
+        "chartTitle": "NVIDIA CORP Profitability Profile",
+        "stage": "upload",
+        "exportFormat": null,
+        "endpoint": "/charts/cUxpx/data",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "upload succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "cUxpx",
+        "chartTitle": "NVIDIA CORP Profitability Profile",
+        "stage": "metadata",
+        "exportFormat": null,
+        "endpoint": "/charts/cUxpx",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "metadata succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "cUxpx",
+        "chartTitle": "NVIDIA CORP Profitability Profile",
+        "stage": "publish",
+        "exportFormat": null,
+        "endpoint": "/charts/cUxpx/publish",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "publish succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "cUxpx",
+        "chartTitle": "NVIDIA CORP Profitability Profile",
+        "stage": "export",
+        "exportFormat": "svg",
+        "endpoint": "/charts/cUxpx/export/svg?plain=true&unit=px&width=900&height=220",
+        "httpStatus": 401,
+        "ok": false,
+        "message": "{\"statusCode\":401,\"error\":\"Unauthorized\",\"message\":\"Unauthorized\"}",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "failed"
+      },
+      {
+        "chartId": "cUxpx",
+        "chartTitle": "NVIDIA CORP Profitability Profile",
+        "stage": "export",
+        "exportFormat": "png",
+        "endpoint": "/charts/cUxpx/export/png?plain=true&unit=px&width=900&height=220",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "PNG export succeeded.",
+        "fallbackTriggered": true,
+        "finalAssetType": "png",
+        "finalRenderResult": "rendered"
+      }
+    ]
+  },
+  {
+    "key": "per_share_metrics",
+    "title": "NVIDIA CORP Per Share Metrics",
+    "datasetShape": "timeseries",
+    "datasetHeaders": [
+      "Period",
+      "Diluted EPS",
+      "Book Value Per Share"
+    ],
+    "datasetPreviewRows": [
+      [
+        "2025",
+        "2.94",
+        "3.240879192711525"
+      ],
+      [
+        "2026",
+        "4.9",
+        "6.4718976300197495"
+      ]
+    ],
+    "renderStatus": "rendered",
+    "assetType": "png",
+    "mimeType": "image/png",
+    "fallbackUsed": true,
+    "datawrapperChartId": "6BzXM",
+    "exportDiagnostics": [
+      {
+        "chartId": "6BzXM",
+        "chartTitle": "NVIDIA CORP Per Share Metrics",
+        "stage": "create",
+        "exportFormat": null,
+        "endpoint": "/charts",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "create succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "6BzXM",
+        "chartTitle": "NVIDIA CORP Per Share Metrics",
+        "stage": "upload",
+        "exportFormat": null,
+        "endpoint": "/charts/6BzXM/data",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "upload succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "6BzXM",
+        "chartTitle": "NVIDIA CORP Per Share Metrics",
+        "stage": "metadata",
+        "exportFormat": null,
+        "endpoint": "/charts/6BzXM",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "metadata succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "6BzXM",
+        "chartTitle": "NVIDIA CORP Per Share Metrics",
+        "stage": "publish",
+        "exportFormat": null,
+        "endpoint": "/charts/6BzXM/publish",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "publish succeeded.",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "pending"
+      },
+      {
+        "chartId": "6BzXM",
+        "chartTitle": "NVIDIA CORP Per Share Metrics",
+        "stage": "export",
+        "exportFormat": "svg",
+        "endpoint": "/charts/6BzXM/export/svg?plain=true&unit=px&width=960&height=230",
+        "httpStatus": 401,
+        "ok": false,
+        "message": "{\"statusCode\":401,\"error\":\"Unauthorized\",\"message\":\"Unauthorized\"}",
+        "fallbackTriggered": false,
+        "finalAssetType": null,
+        "finalRenderResult": "failed"
+      },
+      {
+        "chartId": "6BzXM",
+        "chartTitle": "NVIDIA CORP Per Share Metrics",
+        "stage": "export",
+        "exportFormat": "png",
+        "endpoint": "/charts/6BzXM/export/png?plain=true&unit=px&width=960&height=230",
+        "httpStatus": 200,
+        "ok": true,
+        "message": "PNG export succeeded.",
+        "fallbackTriggered": true,
+        "finalAssetType": "png",
+        "finalRenderResult": "rendered"
+      }
+    ]
+  }
+]

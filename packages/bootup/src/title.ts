@@ -10,7 +10,7 @@ import { hslToRgb, fgRgb } from './colors.js';
 
 const TITLE_GRADIENT = gradient(['#b7f59e', '#8fe388', '#6dcc73']);
 const SUBTITLE_TEXT = 'AI-powered SEC filing analysis';
-const VERSION_TEXT = 'v0.1.0';
+const VERSION_TEXT = 'v0.1.2';
 
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));

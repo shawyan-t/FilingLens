@@ -14,7 +14,7 @@ import { spawn } from 'node:child_process';
 // Load .env from project root (2 levels up from packages/agent/)
 dotenv.config({ path: resolve(import.meta.dirname, '../../../.env') });
 
-import { select, input, confirm } from '@inquirer/prompts';
+import { select, input } from '@inquirer/prompts';
 import { runBootup } from '@dolph/bootup';
 import { runPipeline } from './pipeline.js';
 import { createLLMProvider, getLLMConfig } from './llm/provider.js';
@@ -22,7 +22,7 @@ import { generatePDF } from './exporter.js';
 import { exportCSV } from './exporter-csv.js';
 
 import { searchFilings } from '@dolph/mcp-sec-server/tools/search-filings.js';
-import { getFilingContent } from '@dolph/mcp-sec-server/tools/get-filing-content.js';
+import { listPreviewableFilingFiles, previewFilingFile, saveFilingBundleZip } from '@dolph/mcp-sec-server/edgar/filing-directory.js';
 import { resolveTickerWithConfidence } from '@dolph/mcp-sec-server/edgar/cik-lookup.js';
 import type { PipelineConfig, PipelineCallbacks } from './types.js';
 import type { CanonicalReportPackage } from './canonical-report-package.js';
@@ -135,8 +135,8 @@ const ICONS = {
 function printMenuHeader(): void {
   console.log('');
   console.log(`${BLUE}┌─────────────────────────────────────────┐${RESET}`);
-  console.log(`${BLUE}│${RESET}  ${BOLD}Dolph${RESET} v0.1.0                            ${BLUE}│${RESET}`);
-  console.log(`${BLUE}│${RESET}  ${DIM}AI-powered SEC filing analysis${RESET}           ${BLUE}│${RESET}`);
+  console.log(`${BLUE}│${RESET}  ${BOLD}Dolph${RESET} v0.1.2                           ${BLUE}│${RESET}`);
+  console.log(`${BLUE}│${RESET}  ${DIM}AI-powered SEC filing analysis${RESET}         ${BLUE}│${RESET}`);
   console.log(`${BLUE}├─────────────────────────────────────────┤${RESET}`);
   console.log(`${BLUE}│${RESET}                                         ${BLUE}│${RESET}`);
   console.log(`${BLUE}│${RESET}   1. Analyze a Company                  ${BLUE}│${RESET}`);
@@ -187,9 +187,12 @@ function buildCallbacks(outputFormat: 'terminal' | 'pdf' | 'both'): PipelineCall
 
       // CSV export
       if (context && canonicalPackage) {
-        const wantCSV = await confirm({
-          message: 'Export data to CSV?',
-          default: false,
+        const wantCSV = await select({
+          message: 'Export data to CSV? [Y/N]',
+          choices: [
+            { name: 'Y', value: true },
+            { name: 'N', value: false },
+          ],
         });
         if (wantCSV) {
           try {
@@ -495,8 +498,8 @@ async function handleSearch(): Promise<void> {
       const actionChoices: Array<{ name: string; value: string }> = [];
       if (filing.primary_document_url) {
         actionChoices.push({ name: '🌐 Open in browser', value: 'open' });
-        actionChoices.push({ name: '👁 Preview filing text', value: 'preview' });
-        actionChoices.push({ name: '💾 Download filing text', value: 'download' });
+        actionChoices.push({ name: '👁 Preview files', value: 'preview' });
+        actionChoices.push({ name: '💾 Download Filing Data', value: 'download' });
       }
       actionChoices.push({ name: '← Back to results', value: 'back' });
 
@@ -511,41 +514,52 @@ async function handleSearch(): Promise<void> {
         console.log('');
       } else if ((action === 'preview' || action === 'download') && filing.primary_document_url) {
         try {
-          const content = await getFilingContent({
-            accession_number: filing.accession_number,
-            document_url: filing.primary_document_url,
-          });
-
           if (action === 'preview') {
-            const previewSections = content.sections.slice(0, 3);
-            console.log(`  ${GREEN}✓${RESET} Loaded filing text (${content.word_count.toLocaleString()} words)`);
-            console.log('');
-            if (previewSections.length > 0) {
-              for (const section of previewSections) {
-                const snippet = section.content.replace(/\s+/g, ' ').slice(0, 280);
-                console.log(`  ${BOLD}${section.title}${RESET}`);
-                console.log(`  ${DIM}${snippet}${snippet.length === 280 ? '…' : ''}${RESET}`);
-                console.log('');
+            const files = await listPreviewableFilingFiles(filing.primary_document_url);
+            if (files.length === 0) {
+              console.log(`  ${DIM}No previewable files were found for this filing.${RESET}`);
+              console.log('');
+              continue;
+            }
+
+            let previewing = true;
+            while (previewing) {
+              const fileChoice = await select({
+                message: 'Select a file to preview:',
+                choices: [
+                  ...files.map((file) => ({
+                    name: file.name,
+                    value: file.relativePath,
+                  })),
+                  { name: '← Back to filing actions', value: '' },
+                ],
+              });
+
+              if (!fileChoice) {
+                previewing = false;
+                break;
               }
-            } else {
-              const snippet = content.raw_text.replace(/\s+/g, ' ').slice(0, 500);
-              console.log(`  ${DIM}${snippet}${snippet.length === 500 ? '…' : ''}${RESET}`);
+
+              const preview = await previewFilingFile(filing.primary_document_url, fileChoice, 8000);
+              console.log(`  ${GREEN}✓${RESET} Previewing ${BOLD}${preview.name}${RESET}`);
+              console.log('');
+              console.log(`${DIM}${preview.content}${preview.truncated ? '\n\n… preview truncated …' : ''}${RESET}`);
               console.log('');
             }
           } else {
-            const safeTicker = (filing.company_name || 'filing')
-              .replace(/[^a-zA-Z0-9_-]+/g, '_')
-              .replace(/^_+|_+$/g, '')
-              .slice(0, 40) || 'filing';
             const outDir = defaultFilingsDir();
-            await mkdir(outDir, { recursive: true });
-            const path = resolve(outDir, `${safeTicker}-${filing.filing_type}-${filing.date_filed}-${filing.accession_number}.txt`);
-            await writeFile(path, content.raw_text, 'utf-8');
-            console.log(`  ${GREEN}✓${RESET} Saved: ${BOLD}${path}${RESET}`);
+            const bundle = await saveFilingBundleZip({
+              accessionNumber: filing.accession_number,
+              documentUrl: filing.primary_document_url,
+              companyName: filing.company_name,
+              filingType: filing.filing_type,
+              dateFiled: filing.date_filed,
+            }, outDir);
+            console.log(`  ${GREEN}✓${RESET} Saved: ${BOLD}${bundle.zipPath}${RESET}`);
             console.log('');
           }
         } catch (err) {
-          console.error(`  ${RED}✗${RESET} Could not retrieve filing content: ${err instanceof Error ? err.message : err}`);
+          console.error(`  ${RED}✗${RESET} Filing action failed: ${err instanceof Error ? err.message : err}`);
           console.log('');
         }
       }
