@@ -12,7 +12,8 @@
  * Cost: deterministic mode uses 0 LLM calls; llm mode uses 1 executive-summary call.
  */
 
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type {
   Report,
   ReportSection,
@@ -35,10 +36,13 @@ import { buildCanonicalReportPackage, type CanonicalReportPackage } from './cano
 import type { ReportModel } from './report-model.js';
 import { resolveAlignedFilingForTicker } from './report-model.js';
 import { writeAuditArtifacts } from './audit-artifacts.js';
-import { defaultReportsDir } from './report-paths.js';
 import { resolvePeriodAnchors, type PeriodBasis } from './analyzer.js';
 import { classifyAllIssuerSupport, summarizeExcludedIssuers } from './issuer-support.js';
 import { buildGracefulQAFallbackReport, buildLimitedCoverageReport } from './limited-coverage-report.js';
+
+function defaultReportsDir(): string {
+  return resolve(dirname(fileURLToPath(import.meta.url)), '../reports');
+}
 
 /**
  * Run the full analysis pipeline for given tickers.

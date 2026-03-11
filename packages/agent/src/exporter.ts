@@ -8,7 +8,8 @@
  */
 
 import { mkdir, rm } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import puppeteer from 'puppeteer';
 import type { Report, AnalysisContext } from '@dolph/shared';
 import { buildReportHTML } from './exporter-template.js';
@@ -17,8 +18,11 @@ import { PDF_THEME } from './pdf-theme.js';
 import { runDeterministicQAGates, writeQAFailureReport } from './deterministic-qa.js';
 import { writeAuditArtifacts } from './audit-artifacts.js';
 import { requireCanonicalReportPackage, type CanonicalReportPackage } from './canonical-report-package.js';
-import { defaultReportsDir } from './report-paths.js';
 import { renderChartSetWithDatawrapper } from './datawrapper.js';
+
+function defaultReportsDir(): string {
+  return resolve(dirname(fileURLToPath(import.meta.url)), '../reports');
+}
 
 export async function generatePDF(
   report: Report,

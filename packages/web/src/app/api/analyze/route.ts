@@ -1,5 +1,7 @@
 import { NextRequest } from 'next/server';
+import { access } from 'node:fs/promises';
 import { basename } from 'node:path';
+import { resolve } from 'node:path';
 import { z } from 'zod';
 import { loadAnalysisRecord, saveAnalysisRecord } from '@/lib/history-store';
 import { registerArtifact } from '@/lib/artifact-store';
@@ -48,10 +50,6 @@ async function getExporterModule() {
 
 async function getCsvExporterModule() {
   return import('@dolph/agent/dist/exporter-csv.js');
-}
-
-async function getReportPathsModule() {
-  return import('@dolph/agent/dist/report-paths.js');
 }
 
 async function getResolverModule() {
@@ -130,6 +128,28 @@ function serializeRenderedCharts(chartSet?: ChartSet): RenderedChartPayload[] {
     }));
 }
 
+async function resolveWebReportsDir(): Promise<string> {
+  const configured = process.env.DOLPH_WEB_REPORTS_DIR || process.env.DOLPH_REPORTS_DIR;
+  const candidates = configured
+    ? [resolve(process.cwd(), configured)]
+    : [
+        resolve(process.cwd(), 'packages/agent/reports'),
+        resolve(process.cwd(), '../agent/reports'),
+        resolve(process.cwd(), 'reports'),
+      ];
+
+  for (const candidate of candidates) {
+    try {
+      await access(candidate);
+      return candidate;
+    } catch {
+      // Try the next likely workspace path.
+    }
+  }
+
+  return candidates[0]!;
+}
+
 async function buildArtifacts(args: {
   report: Report;
   context?: AnalysisContext;
@@ -138,8 +158,7 @@ async function buildArtifacts(args: {
   sendStep: (step: string, status: 'running' | 'complete' | 'error', detail?: string) => void;
 }): Promise<FinalReportPayload['artifacts']> {
   const { report, context, canonicalPackage, outputFormat, sendStep } = args;
-  const { defaultReportsDir } = await getReportPathsModule();
-  const reportsDir = defaultReportsDir();
+  const reportsDir = await resolveWebReportsDir();
   const artifacts: NonNullable<FinalReportPayload['artifacts']> = {};
 
   if (outputFormat === 'pdf' || outputFormat === 'both') {
