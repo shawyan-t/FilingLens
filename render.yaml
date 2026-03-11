@@ -1,0 +1,37 @@
+services:
+  - type: web
+    name: dolph-web
+    env: node
+    plan: starter
+    rootDir: .
+    autoDeploy: true
+    healthCheckPath: /
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm -r build
+    startCommand: pnpm --filter @dolph/web exec next start -H 0.0.0.0 -p $PORT
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: DOLPH_LLM_PROVIDER
+        value: openai
+      - key: DOLPH_LLM_MODEL
+        value: gpt-4.1-nano
+      - key: DOLPH_WEB_REPORTS_DIR
+        value: /data/dolph/reports
+      - key: DOLPH_HISTORY_DIR
+        value: /data/dolph/history
+      - key: DOLPH_CACHE_DIR
+        value: /data/dolph/cache
+      - key: DOLPH_WEB_ALLOWED_ORIGIN
+        sync: false
+      - key: DOLPH_WEB_API_KEY
+        generateValue: true
+      - key: DOLPH_SEC_USER_AGENT
+        sync: false
+      - key: DOLPH_OPENAI_API_KEY
+        sync: false
+      - key: DATAWRAPPER_API_KEY
+        sync: false
+    disks:
+      - name: dolph-data
+        mountPath: /data
+        sizeGB: 10

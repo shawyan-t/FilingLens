@@ -9,7 +9,9 @@
     "bootup": "pnpm --filter bootup start",
     "analyze": "pnpm --filter agent start",
     "start": "pnpm --filter agent start",
-    "test": "pnpm -r --if-present test"
+    "test": "pnpm -r --if-present test",
+    "release:pack-cli": "./scripts/publish-cli.sh --dry-run",
+    "release:publish-cli": "./scripts/publish-cli.sh"
   },
   "pnpm": {
     "onlyBuiltDependencies": ["puppeteer"]
