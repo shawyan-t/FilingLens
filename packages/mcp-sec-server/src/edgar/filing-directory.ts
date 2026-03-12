@@ -1,8 +1,9 @@
 import { copyFile, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { createWriteStream } from 'node:fs';
 import { dirname, join, posix as posixPath } from 'node:path';
 import { homedir, tmpdir } from 'node:os';
-import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import archiver from 'archiver';
 import { edgarFetch } from './client.js';
 import { RateLimiter } from '../utils/rate-limiter.js';
 import { fileCache } from '../cache/file-cache.js';
@@ -194,19 +195,16 @@ function isPreviewableFile(name: string): boolean {
 
 function runZip(directory: string, outputPath: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    const child = spawn('/usr/bin/zip', ['-rq', outputPath, '.'], { cwd: directory });
-    let stderr = '';
-    child.stderr.on('data', (chunk) => {
-      stderr += chunk.toString();
-    });
-    child.on('error', reject);
-    child.on('close', (code) => {
-      if (code === 0) {
-        resolve();
-      } else {
-        reject(new Error(stderr || `zip exited with status ${code}`));
-      }
-    });
+    const output = createWriteStream(outputPath);
+    const archive = archiver('zip', { zlib: { level: 9 } });
+    const fail = (error: unknown) => reject(error instanceof Error ? error : new Error(String(error)));
+
+    output.on('close', resolve);
+    output.on('error', fail);
+    archive.on('error', fail);
+    archive.pipe(output);
+    archive.directory(directory, false);
+    void archive.finalize().catch(fail);
   });
 }
 

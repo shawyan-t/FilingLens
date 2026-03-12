@@ -12,6 +12,7 @@
     "@shawyan/mcp-sec-server": "workspace:*",
     "@shawyan/shared": "workspace:*",
     "@vercel/blob": "^2.3.1",
+    "archiver": "^6.0.2",
     "dolph-fin": "workspace:*",
     "nanoid": "^5.0.0",
     "next": "14.2.35",
@@ -22,6 +23,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@types/archiver": "^6.0.3",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

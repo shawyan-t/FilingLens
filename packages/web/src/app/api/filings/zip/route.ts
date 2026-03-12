@@ -1,8 +1,9 @@
 import { NextRequest } from 'next/server';
 import { copyFile, mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { createWriteStream } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { spawn } from 'node:child_process';
+import archiver from 'archiver';
 import { z } from 'zod';
 import { registerArtifact } from '@/lib/artifact-store';
 import { loadDolphEnv } from '@/lib/dolph-env';
@@ -30,19 +31,16 @@ function sanitizePart(value: string): string {
 
 function runZip(directory: string, outputPath: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    const child = spawn('/usr/bin/zip', ['-rq', outputPath, '.'], { cwd: directory });
-    let stderr = '';
-    child.stderr.on('data', (chunk) => {
-      stderr += chunk.toString();
-    });
-    child.on('error', reject);
-    child.on('close', (code) => {
-      if (code === 0) {
-        resolve();
-      } else {
-        reject(new Error(stderr || `zip exited with status ${code}`));
-      }
-    });
+    const output = createWriteStream(outputPath);
+    const archive = archiver('zip', { zlib: { level: 9 } });
+    const fail = (error: unknown) => reject(error instanceof Error ? error : new Error(String(error)));
+
+    output.on('close', resolve);
+    output.on('error', fail);
+    archive.on('error', fail);
+    archive.pipe(output);
+    archive.directory(directory, false);
+    void archive.finalize().catch(fail);
   });
 }
 
