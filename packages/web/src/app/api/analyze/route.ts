@@ -7,9 +7,9 @@ import { loadAnalysisRecord, saveAnalysisRecord } from '@/lib/history-store';
 import { registerArtifact } from '@/lib/artifact-store';
 import { loadDolphEnv } from '@/lib/dolph-env';
 import type { Report } from '@shawyan/shared';
-import type { CanonicalReportPackage } from '@shawyan/agent/dist/canonical-report-package.js';
+import type { CanonicalReportPackage } from 'dolph-fin/dist/canonical-report-package.js';
 import type { AnalysisContext } from '@shawyan/shared';
-import type { ChartSet } from '@shawyan/agent/dist/charts.js';
+import type { ChartSet } from 'dolph-fin/dist/charts.js';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -41,15 +41,15 @@ interface RenderedChartPayload {
 }
 
 async function getPipelineModule() {
-  return import('@shawyan/agent/pipeline');
+  return import('dolph-fin/pipeline');
 }
 
 async function getExporterModule() {
-  return import('@shawyan/agent/dist/exporter.js');
+  return import('dolph-fin/dist/exporter.js');
 }
 
 async function getCsvExporterModule() {
-  return import('@shawyan/agent/dist/exporter-csv.js');
+  return import('dolph-fin/dist/exporter-csv.js');
 }
 
 async function getResolverModule() {
@@ -57,7 +57,7 @@ async function getResolverModule() {
 }
 
 async function getDatawrapperModule() {
-  return import('@shawyan/agent/dist/datawrapper.js');
+  return import('dolph-fin/dist/datawrapper.js');
 }
 
 const AnalyzeRequestSchema = z.object({

@@ -44,7 +44,7 @@ pnpm --filter @shawyan/shared \
   --filter @shawyan/mcp-sec-server \
   --filter @shawyan/mcp-financials-server \
   --filter @shawyan/bootup \
-  --filter @shawyan/agent \
+  --filter dolph-fin \
   build
 
 echo "[3/4] Verifying publish payloads..."
@@ -58,18 +58,24 @@ done
 
 if [[ "${DRY_RUN}" == "true" ]]; then
   echo "[4/4] Dry run complete. No packages were published."
-  echo "Install command users should run: npm i -g @shawyan/agent"
+  echo "Install command users should run: npm i -g dolph-fin"
   exit 0
 fi
 
 echo "[4/4] Publishing packages to npm..."
 for pkg in "${PACKAGES[@]}"; do
-  echo "  - Publishing ${pkg}"
   (
     cd "${pkg}"
-    npm publish --access public
+    NAME="$(npm pkg get name | tr -d '\"')"
+    VERSION="$(npm pkg get version | tr -d '\"')"
+    if npm view "${NAME}@${VERSION}" version >/dev/null 2>&1; then
+      echo "  - Skipping ${pkg} (${NAME}@${VERSION} already published)"
+    else
+      echo "  - Publishing ${pkg} (${NAME}@${VERSION})"
+      npm publish --access public
+    fi
   )
 done
 
 echo "Publish complete."
-echo "Install command users should run: npm i -g @shawyan/agent"
+echo "Install command users should run: npm i -g dolph-fin"

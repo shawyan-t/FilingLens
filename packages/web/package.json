@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@shawyan/agent": "workspace:*",
+    "dolph-fin": "workspace:*",
     "@shawyan/mcp-sec-server": "workspace:*",
     "@shawyan/shared": "workspace:*",
     "nanoid": "^5.0.0",

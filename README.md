@@ -200,8 +200,8 @@ Direct package commands:
 
 ```bash
 pnpm --filter @shawyan/web dev
-pnpm --filter @shawyan/agent start
-pnpm --filter @shawyan/agent build
+pnpm --filter dolph-fin start
+pnpm --filter dolph-fin build
 pnpm --filter @shawyan/mcp-sec-server build
 ```
 
@@ -227,7 +227,7 @@ The CLI can:
 - preview filing files
 - download filing data bundles from SEC filing directories
 
-When the `@shawyan/agent` package is installed or linked as a CLI package, the binary name is:
+When the `dolph-fin` package is installed or linked as a CLI package, the binary name is:
 
 ```bash
 dolph

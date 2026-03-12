@@ -5,7 +5,7 @@
  * For the interactive CLI with menu, use cli.ts instead.
  *
  * Usage:
- *   import { runAnalysis } from '@shawyan/agent';
+ *   import { runAnalysis } from 'dolph-fin';
  */
 
 export { runPipeline } from './pipeline.js';

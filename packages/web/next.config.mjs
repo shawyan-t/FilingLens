@@ -1,5 +1,5 @@
 const serverPackages = [
-  "@shawyan/agent",
+  "dolph-fin",
   "@shawyan/shared",
   "@shawyan/mcp-sec-server",
   "@shawyan/mcp-financials-server",

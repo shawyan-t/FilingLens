@@ -137,15 +137,15 @@ importers:
 
   packages/web:
     dependencies:
-      '@shawyan/agent':
-        specifier: workspace:*
-        version: link:../agent
       '@shawyan/mcp-sec-server':
         specifier: workspace:*
         version: link:../mcp-sec-server
       '@shawyan/shared':
         specifier: workspace:*
         version: link:../shared
+      dolph-fin:
+        specifier: workspace:*
+        version: link:../agent
       nanoid:
         specifier: ^5.0.0
         version: 5.1.6
