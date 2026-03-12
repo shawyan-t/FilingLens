@@ -324,6 +324,7 @@ export async function POST(request: NextRequest) {
             snapshotDate: snapshot_date,
             narrativeMode: narrative_mode || 'deterministic',
             outputFormat: output_format || 'terminal',
+            policy: { persistAuditArtifacts: false },
             abortSignal: pipelineAbortController.signal,
           },
           undefined,
